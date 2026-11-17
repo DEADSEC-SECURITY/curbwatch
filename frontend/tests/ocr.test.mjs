@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import sharp from "sharp";
+import { readFile } from "node:fs/promises";
 import { createWorker } from "tesseract.js";
 import { plateCandidates } from "../src/scanner/candidates.js";
 
@@ -15,10 +15,8 @@ test(
       dirname(require.resolve("@tesseract.js-data/eng/package.json")),
       "4.0.0_best_int",
     );
-    const svg = Buffer.from(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300"><rect width="1200" height="300" fill="white"/><text x="600" y="208" text-anchor="middle" font-size="160" font-weight="bold" font-family="DejaVu Sans, sans-serif" letter-spacing="9">DEMO6808</text></svg>',
-    );
-    const image = await sharp(svg).png().toBuffer();
+    // A fixed synthetic raster keeps host font substitution out of the OCR test.
+    const image = await readFile(new URL("./fixtures/plate.png", import.meta.url));
     const worker = await createWorker("eng", 1, {
       langPath,
       cacheMethod: "none",
