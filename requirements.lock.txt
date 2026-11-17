@@ -30,7 +30,7 @@ pwdlib==0.4.2
 pycparser==3.12
 pydantic==2.14.3
 pydantic_core==2.50.4
-python-dateutil==2.9.0.post0
+python-dateutil==4.0.0
 python-dotenv==1.2.4
 redis==8.1.0
 six==1.17.0
