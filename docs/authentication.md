@@ -24,7 +24,8 @@ Use `.env.example` as the reference. The native launcher and Compose services lo
 |---|---|
 | `PARKING_BASE_URL` | `http://127.0.0.1:8000`; exact external owner origin, used for callbacks and invitations. Set the actual HTTPS origin behind a proxy. No trailing path. |
 | `PARKING_COOKIE_SECURE` | Automatically true with an HTTPS base URL; may force true for local TLS. Cannot disable Secure on an HTTPS base URL. |
-| `PARKING_SESSION_HOURS` | 8; absolute session lifetime in hours (1–168). |
+| `PARKING_SESSION_HOURS` | 8; absolute local-password/invitation session lifetime in hours (1–168). |
+| `PARKING_SSO_SESSION_HOURS` | 720 (30 days); absolute SSO session lifetime in hours (1–2160). |
 | `PARKING_OIDC_ISSUER` | Exact issuer from discovery, including its trailing slash. Any explicit OIDC option makes this provider managed by deployment configuration. |
 | `PARKING_OIDC_DISCOVERY_URL` | Issuer + `/.well-known/openid-configuration`; override for providers whose discovery path differs from their issuer. |
 | `PARKING_OIDC_CLIENT_ID` | Registered OIDC client ID. |
@@ -38,6 +39,8 @@ Use `.env.example` as the reference. The native launcher and Compose services lo
 For UI configuration, sign in as admin and open **Settings → Single sign-on**. Enter the provider label, exact issuer, discovery URL, client ID and secret. Blank secret preserves the saved one. Register the displayed callback URL at the provider. Save and test in another browser before ending the recovery admin session. Existing local passwords remain available if the provider is unavailable.
 
 For multiple API replicas, share the same SQLite-compatible local deployment, encryption key and configuration; SQLite is intended for this small single-host app. Protect the data directory, encryption key and backups with deployment permissions. Back up `auth.key` together with the database; losing it makes saved SSO settings unreadable. You may still use environment-managed SSO or the recovery CLI. Do not synchronize an open SQLite database over a file sync service.
+
+SSO sign-ins create a persistent app session lasting 30 days by default. Set `PARKING_SSO_SESSION_HOURS` to choose a different duration (up to 90 days), then restart the API. Both the browser cookie and server-side expiry use that duration. Changes apply to new sessions, so sign in through SSO once after changing the setting; existing sessions keep their original expiry. Session checks do not extend this absolute deadline. Logout, password reset and account/role changes can end a session sooner.
 
 ## Authentik
 

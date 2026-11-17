@@ -9,6 +9,7 @@ import {
 import App from "./App.vue";
 import { api, setCsrfToken } from "./api";
 import PwaControls from "./components/PwaControls.vue";
+import { PHONE_QUERY } from "./dialog.js";
 
 const user = ref(null),
   ready = ref(false),
@@ -48,7 +49,11 @@ function signedIn(session, completeInvitation = false) {
     (!invite.value && location.hash.startsWith("#login"))
   ) {
     invite.value = "";
-    history.replaceState(null, "", "#map");
+    history.replaceState(
+      null,
+      "",
+      window.matchMedia(PHONE_QUERY).matches ? "#today" : "#map",
+    );
   }
 }
 function signedOut() {

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import pytest
 
 from backend import config
 from backend.db import connect, init_db
@@ -79,3 +80,47 @@ def test_external_encryption_key_can_be_mounted_readonly(database, tmp_path, mon
     monkeypatch.setenv("PARKING_AUTH_KEY_FILE", str(path))
     encrypted = encryption().encrypt(b"configuration-secret")
     assert encryption().decrypt(encrypted) == b"configuration-secret"
+
+
+@pytest.mark.parametrize("hours,expected", [(None, 720), ("1080", 1080), ("1", 1), ("2160", 2160)])
+def test_sso_session_default_and_configured_duration(tmp_path, hours, expected):
+    environment = {
+        **os.environ,
+        "PARKING_ENV_FILE": str(tmp_path / "missing.env"),
+        "PARKING_DATA_DIR": str(tmp_path / "data"),
+        "PARKING_DATABASE_PATH": str(tmp_path / "test.sqlite3"),
+        "PARKING_SESSION_HOURS": "8",
+    }
+    environment.pop("PARKING_SSO_SESSION_HOURS", None)
+    if hours is not None:
+        environment["PARKING_SSO_SESSION_HOURS"] = hours
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from backend import config; print(config.AUTH_SESSION_HOURS, config.AUTH_SSO_SESSION_HOURS)",
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == f"8 {expected}"
+
+
+@pytest.mark.parametrize("hours", ["0", "2161"])
+def test_sso_session_duration_rejects_out_of_range_values(tmp_path, hours):
+    result = subprocess.run(
+        [sys.executable, "-c", "import backend.config"],
+        env={
+            **os.environ,
+            "PARKING_ENV_FILE": str(tmp_path / "missing.env"),
+            "PARKING_DATA_DIR": str(tmp_path / "data"),
+            "PARKING_DATABASE_PATH": str(tmp_path / "test.sqlite3"),
+            "PARKING_SSO_SESSION_HOURS": hours,
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "PARKING_SSO_SESSION_HOURS must be between 1 and 2160" in result.stderr

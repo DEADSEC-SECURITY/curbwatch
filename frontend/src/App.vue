@@ -39,9 +39,13 @@ import {
   Share2,
   Settings as SettingsIcon,
   LogOut,
+  House,
+  Ellipsis,
 } from "@lucide/vue";
 import HistoryPeriod from "./components/HistoryPeriod.vue";
 import Settings from "./components/Settings.vue";
+import TodayDashboard from "./components/TodayDashboard.vue";
+import { usePhoneLayout, useDialogFocus } from "./dialog.js";
 
 const props = defineProps({ user: { type: Object, required: true } });
 const emit = defineEmits(["logout", "session"]);
@@ -61,11 +65,19 @@ import { api, money, dateTime, shortDate, hourLabel, localNow } from "./api";
 const historyDays = ref(String(runtime.defaultHistoryDays));
 const draftKey = `curbwatch-vehicle-draft-${props.user.id}`;
 const initial = localNow();
+const phone = usePhoneLayout();
+const validPages = ["today", "map", "cars", "tickets", "settings"];
 const page = ref(
-  ["map", "cars", "tickets", "settings"].includes(location.hash.slice(1))
+  validPages.includes(location.hash.slice(1))
     ? location.hash.slice(1)
-    : "map",
+    : phone.value
+      ? "today"
+      : "map",
 );
+const mobileMenu = ref(false),
+  menuPanel = ref(null),
+  streetPanel = ref(null);
+const activityVersion = ref(0);
 const cars = ref([]),
   tickets = ref([]),
   stats = ref({}),
@@ -109,13 +121,16 @@ const importCar = ref(""),
   importFile = ref(null),
   importFilename = ref("");
 const toast = ref(null),
-  detailTicket = ref(null);
+  detailTicket = ref(null),
+  modalPanel = ref(null),
+  ticketPanel = ref(null);
 let interval,
   toastTimer,
   activityRequest = 0,
   lastFinishedRun,
   refreshing = false;
-let lookupRequest = 0;
+let lookupRequest = 0,
+  disposed = false;
 
 const busyRun = computed(() =>
   runs.value.find((r) => ["queued", "running"].includes(r.status)),
@@ -126,6 +141,7 @@ const checking = computed(
 const title = computed(
   () =>
     ({
+      today: "Today",
       map: "Street activity",
       cars: "Your vehicles",
       tickets: "Ticket history",
@@ -156,6 +172,32 @@ const streetList = computed(() =>
 const selectedSummary = computed(() =>
   activity.value?.streets?.find((s) => s.street_key === selectedStreet.value),
 );
+const streetSheetOpen = computed(
+  () => phone.value && Boolean(selectedSummary.value),
+);
+useDialogFocus(mobileMenu, menuPanel, () => {
+  mobileMenu.value = false;
+});
+useDialogFocus(streetSheetOpen, streetPanel, () => {
+  selectedStreet.value = "";
+});
+useDialogFocus(
+  computed(() => Boolean(modal.value)),
+  modalPanel,
+  () => {
+    modal.value = null;
+  },
+);
+useDialogFocus(
+  computed(() => Boolean(detailTicket.value)),
+  ticketPanel,
+  () => {
+    detailTicket.value = null;
+  },
+);
+watch(phone, () => {
+  mobileMenu.value = false;
+});
 const hourlyMax = computed(() =>
   Math.max(1, ...(activity.value?.hourly_counts || [])),
 );
@@ -194,6 +236,8 @@ const {
       !showingSnapshot.value &&
       !connectionError.value &&
       !modal.value &&
+      !mobileMenu.value &&
+      !streetSheetOpen.value &&
       !sharingOpen.value &&
       !scannerOpen.value,
     ),
@@ -205,10 +249,26 @@ watch([day, historyDays], () => {
 });
 
 function navigate(value) {
+  mobileMenu.value = false;
   page.value = value;
   location.hash = value;
   search.value = "";
   selectedStreet.value = "";
+}
+function hashChanged() {
+  const value = location.hash.slice(1);
+  if (validPages.includes(value) && value !== page.value) {
+    page.value = value;
+    search.value = "";
+    selectedStreet.value = "";
+    mobileMenu.value = false;
+  }
+}
+async function viewNearbyStreet(key) {
+  navigate("map");
+  jumpNow();
+  await loadActivity();
+  if (page.value === "map") selectedStreet.value = key;
 }
 function notify(message, kind = "success") {
   toast.value = { message, kind };
@@ -260,9 +320,11 @@ async function refresh(full = false) {
     const finished = checks.find(
       (r) => !["queued", "running"].includes(r.status),
     );
-    if (full || finished?.id !== lastFinishedRun) {
+    const finishedId = finished?.id ?? null;
+    if (full || finishedId !== lastFinishedRun) {
       tickets.value = await api("/tickets");
       await loadActivity();
+      activityVersion.value++;
       if (!full && finished && lastFinishedRun !== undefined) {
         if (finished.status === "completed")
           notify(
@@ -274,7 +336,7 @@ async function refresh(full = false) {
             "error",
           );
       }
-      lastFinishedRun = finished?.id ?? null;
+      lastFinishedRun = finishedId;
     }
     snapshotAt.value = new Date().toISOString();
   } catch (error) {
@@ -492,9 +554,16 @@ async function submitImport() {
 }
 function onEscape(event) {
   if (event.key === "Escape") {
+    mobileMenu.value = false;
     modal.value = null;
     detailTicket.value = null;
     selectedStreet.value = "";
+  }
+}
+function visible() {
+  if (document.visibilityState !== "hidden") {
+    if (followNow.value) jumpNow();
+    refresh();
   }
 }
 watch([day, hour, historyDays], () => {
@@ -553,7 +622,9 @@ onMounted(async () => {
     }
   } catch {}
   await refresh(true);
+  if (disposed) return;
   interval = setInterval(() => {
+    if (document.visibilityState === "hidden") return;
     if (followNow.value) {
       const current = localNow();
       day.value = current.day;
@@ -562,24 +633,42 @@ onMounted(async () => {
     refresh();
   }, 5000);
   document.addEventListener("keydown", onEscape);
+  document.addEventListener("visibilitychange", visible);
+  window.addEventListener("hashchange", hashChanged);
 });
 onBeforeUnmount(() => {
+  disposed = true;
+  activityRequest++;
   clearInterval(interval);
   clearTimeout(toastTimer);
   document.removeEventListener("keydown", onEscape);
+  document.removeEventListener("visibilitychange", visible);
+  window.removeEventListener("hashchange", hashChanged);
 });
 </script>
 
 <template>
-  <div class="app-layout" :class="{ 'map-page': page === 'map' }">
+  <div
+    class="app-layout"
+    :class="{ 'map-page': page === 'map', 'tickets-page': page === 'tickets' }"
+  >
     <ShareLinks v-if="sharingOpen" @close="sharingOpen = false" />
     <aside class="sidebar">
-      <a class="brand" href="#map" @click.prevent="navigate('map')"
+      <a
+        class="brand"
+        :href="phone ? '#today' : '#map'"
+        @click.prevent="navigate(phone ? 'today' : 'map')"
         ><span class="brand-mark">P<span></span></span
         ><span>curbwatch<span class="brand-period">.</span></span></a
       >
       <div class="workspace-label">YOUR WORKSPACE</div>
       <nav aria-label="Main navigation">
+        <button
+          :class="{ active: page === 'today' }"
+          @click="navigate('today')"
+        >
+          <House :size="19" />Today
+        </button>
         <button :class="{ active: page === 'map' }" @click="navigate('map')">
           <MapIcon :size="19" />Street activity<ChevronRight
             v-if="page === 'map'"
@@ -607,6 +696,15 @@ onBeforeUnmount(() => {
           <SettingsIcon :size="19" />Settings
         </button>
       </nav>
+      <button
+        class="mobile-menu-button"
+        aria-label="Open account and app menu"
+        aria-haspopup="dialog"
+        :aria-expanded="mobileMenu"
+        @click="mobileMenu = true"
+      >
+        <Ellipsis :size="24" />
+      </button>
       <button
         class="sidebar-scan"
         aria-label="Scan a plate"
@@ -688,33 +786,43 @@ onBeforeUnmount(() => {
           <CircleAlert :size="18" />{{ connectionError
           }}<button @click="refresh(true)">Retry</button>
         </div>
-        <div class="page-heading">
+        <div
+          class="page-heading"
+          :class="{ 'today-heading': page === 'today' }"
+        >
           <div>
             <div class="eyebrow">
               {{
-                page === "map"
+                page === "today"
                   ? "A LITTLE LOCAL KNOWLEDGE"
-                  : page === "cars"
-                    ? "YOUR PARKING, TOGETHER"
-                    : page === "settings"
-                      ? "YOUR WORKSPACE, YOUR PEOPLE"
-                      : "EVERY TICKET, ONE PLACE"
+                  : page === "map"
+                    ? "A LITTLE LOCAL KNOWLEDGE"
+                    : page === "cars"
+                      ? "YOUR PARKING, TOGETHER"
+                      : page === "settings"
+                        ? "YOUR WORKSPACE, YOUR PEOPLE"
+                        : "EVERY TICKET, ONE PLACE"
               }}
             </div>
             <h1>{{ title }}<span class="heading-dot">.</span></h1>
             <p>
               {{
-                page === "map"
-                  ? "Explore the patterns behind your parking tickets."
-                  : page === "cars"
-                    ? "All your tracked plates. Add a car and we’ll take it from here."
-                    : page === "settings"
-                      ? "Manage your account and who can access your garage."
-                      : "The full picture, from the first ticket to the latest update."
+                page === "today"
+                  ? "A quick look at your street and your garage."
+                  : page === "map"
+                    ? "Explore the patterns behind your parking tickets."
+                    : page === "cars"
+                      ? "All your tracked plates. Add a car and we’ll take it from here."
+                      : page === "settings"
+                        ? "Manage your account and who can access your garage."
+                        : "The full picture, from the first ticket to the latest update."
               }}
             </p>
           </div>
-          <div v-if="page !== 'settings'" class="heading-actions">
+          <div
+            v-if="!['settings', 'today'].includes(page)"
+            class="heading-actions"
+          >
             <button
               v-if="page === 'map' && user.role === 'admin'"
               class="button secondary"
@@ -749,6 +857,18 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
+
+        <TodayDashboard
+          v-if="page === 'today'"
+          :vehicles="cars.length"
+          :tickets="stats.tickets || 0"
+          :checking="checking"
+          :version="activityVersion"
+          @navigate="navigate"
+          @street="viewNearbyStreet"
+          @scan="scannerOpen = true"
+          @check="checkTickets()"
+        />
 
         <Settings
           v-if="page === 'settings'"
@@ -919,11 +1039,29 @@ onBeforeUnmount(() => {
               </div>
             </section>
 
-            <aside class="street-panel">
+            <div
+              v-if="streetSheetOpen"
+              class="street-sheet-backdrop"
+              @click="selectedStreet = ''"
+            ></div>
+            <aside
+              ref="streetPanel"
+              class="street-panel"
+              :class="{ 'street-sheet-open': streetSheetOpen }"
+              :role="streetSheetOpen ? 'dialog' : undefined"
+              :aria-modal="streetSheetOpen ? true : undefined"
+              :aria-label="streetSheetOpen ? 'Street overview' : undefined"
+              :tabindex="streetSheetOpen ? -1 : undefined"
+            >
               <template v-if="selectedSummary"
                 ><div class="street-panel-heading">
                   <button class="text-button" @click="selectedStreet = ''">
-                    <ChevronLeft :size="15" />All streets</button
+                    <X v-if="phone" :size="18" /><ChevronLeft
+                      v-else
+                      :size="15"
+                    />{{
+                      phone ? "Close street details" : "All streets"
+                    }}</button
                   ><span class="level-badge" :class="selectedSummary.level">{{
                     selectedSummary.level === "insufficient"
                       ? "Limited data"
@@ -1274,7 +1412,10 @@ onBeforeUnmount(() => {
               >{{ filteredTickets.length }} records</span
             >
           </div>
-          <div class="ticket-table-wrap">
+          <div
+            class="ticket-table-wrap"
+            :class="{ 'has-tickets': filteredTickets.length }"
+          >
             <table class="ticket-table">
               <thead>
                 <tr>
@@ -1336,6 +1477,41 @@ onBeforeUnmount(() => {
                 </tr>
               </tbody>
             </table>
+            <div class="mobile-ticket-list" aria-label="Tickets">
+              <button
+                v-for="ticket in filteredTickets"
+                :key="ticket.id"
+                class="mobile-ticket-card"
+                @click="detailTicket = ticket"
+              >
+                <span class="mobile-ticket-top"
+                  ><strong>{{
+                    ticket.location_name || "Location unavailable"
+                  }}</strong
+                  ><ArrowUpRight :size="18"
+                /></span>
+                <span class="mobile-ticket-description">{{
+                  ticket.description
+                }}</span>
+                <span class="mobile-ticket-meta"
+                  >{{ plateLabel(ticket) }} ·
+                  {{ shortDate(ticket.issued_at) }}</span
+                >
+                <span class="mobile-ticket-bottom"
+                  ><span
+                    class="ticket-status"
+                    :class="{
+                      paid: ticket.status_id === 19,
+                      outstanding: ticket.balance_cents > 0,
+                    }"
+                    >{{ ticket.status }}</span
+                  ><strong>{{ money(ticket.balance_cents) }}</strong></span
+                >
+                <span class="mobile-ticket-number"
+                  >Ticket #{{ ticket.ticket_number }}</span
+                >
+              </button>
+            </div>
             <div v-if="!filteredTickets.length" class="table-empty">
               <ReceiptText :size="34" />
               <h2>
@@ -1366,6 +1542,111 @@ onBeforeUnmount(() => {
       </div>
     </main>
 
+    <nav class="mobile-nav" aria-label="Phone navigation">
+      <button
+        :class="{ active: page === 'today' }"
+        :aria-current="page === 'today' ? 'page' : undefined"
+        @click="navigate('today')"
+      >
+        <House :size="21" /><span>Today</span>
+      </button>
+      <button
+        :class="{ active: page === 'map' }"
+        :aria-current="page === 'map' ? 'page' : undefined"
+        @click="navigate('map')"
+      >
+        <MapIcon :size="21" /><span>Map</span>
+      </button>
+      <button
+        :class="{ active: page === 'cars' }"
+        :aria-current="page === 'cars' ? 'page' : undefined"
+        @click="navigate('cars')"
+      >
+        <CarFront :size="21" /><span>Vehicles</span>
+      </button>
+      <button
+        :class="{ active: page === 'tickets' }"
+        :aria-current="page === 'tickets' ? 'page' : undefined"
+        @click="navigate('tickets')"
+      >
+        <ReceiptText :size="21" /><span>Tickets</span>
+      </button>
+    </nav>
+
+    <div
+      v-if="mobileMenu"
+      class="modal-overlay mobile-menu-overlay"
+      @click.self="mobileMenu = false"
+    >
+      <section
+        ref="menuPanel"
+        class="modal mobile-app-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="app-menu-title"
+        tabindex="-1"
+      >
+        <button
+          class="modal-close icon-button"
+          aria-label="Close app menu"
+          @click="mobileMenu = false"
+        >
+          <X :size="22" />
+        </button>
+        <h2 id="app-menu-title">Your workspace</h2>
+        <p class="mobile-menu-account">{{ user.name || user.email }}</p>
+        <button @click="navigate('settings')">
+          <SettingsIcon :size="20" />Settings & account<ChevronRight
+            :size="17"
+          />
+        </button>
+        <button
+          v-if="user.role === 'admin'"
+          @click="
+            mobileMenu = false;
+            sharingOpen = true;
+          "
+        >
+          <Share2 :size="20" />Share map<ChevronRight :size="17" />
+        </button>
+        <button
+          @click="
+            mobileMenu = false;
+            openImport();
+          "
+        >
+          <Upload :size="20" />Import history<ChevronRight :size="17" />
+        </button>
+        <button
+          @click="
+            mobileMenu = false;
+            modal = 'help';
+          "
+        >
+          <CircleHelp :size="20" />How activity works<ChevronRight :size="17" />
+        </button>
+        <div class="mobile-menu-install"><PwaControls /></div>
+        <p class="mobile-menu-status">
+          {{ runtime.locationLabel }} ·
+          {{
+            !online || showingSnapshot
+              ? "Saved view"
+              : stats.hourly_checks_running
+                ? "Scheduled checks on"
+                : "Checker offline"
+          }}
+        </p>
+        <button
+          @click="
+            mobileMenu = false;
+            emit('logout');
+          "
+        >
+          <LogOut :size="20" />Sign out
+        </button>
+      </section>
+    </div>
+
     <Transition name="toast"
       ><div
         v-if="toast"
@@ -1391,6 +1672,7 @@ onBeforeUnmount(() => {
     <div v-if="modal" class="modal-overlay" @click.self="modal = null">
       <section
         class="modal"
+        ref="modalPanel"
         role="dialog"
         aria-modal="true"
         :aria-label="
@@ -1709,6 +1991,7 @@ onBeforeUnmount(() => {
     >
       <section
         class="modal ticket-detail-modal"
+        ref="ticketPanel"
         role="dialog"
         aria-modal="true"
         aria-label="Ticket details"

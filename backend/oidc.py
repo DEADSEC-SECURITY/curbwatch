@@ -14,6 +14,7 @@ from joserfc.jws import JWSRegistry
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 
+from . import config
 from .auth import (
     router,
     FLOW_COOKIE,
@@ -200,7 +201,13 @@ async def oidc_callback(request: Request, state: str = "", code: str = ""):
             user = admit_identity(db, settings, claims)
             response = RedirectResponse(base_url() + "/#map", status_code=303)
             response.delete_cookie(FLOW_COOKIE, **cookie_options())
-            start_session(db, user, response, request.cookies.get(COOKIE, ""))
+            start_session(
+                db,
+                user,
+                response,
+                request.cookies.get(COOKIE, ""),
+                session_hours=config.AUTH_SSO_SESSION_HOURS,
+            )
         return response
     except Exception:
         # Tokens, authorization codes, claims and provider errors must never be echoed or logged.

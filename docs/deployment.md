@@ -12,7 +12,36 @@ One image supports `api`, `viewer`, `worker`, `scheduler` and `init` command arg
 
 Compose and the Terraform example create a fresh named volume. They do not automatically import a native installation's `data/`. To migrate, stop the native services, take a consistent SQLite backup and copy the data plus auth.key into the volume; ensure uid 10001 can read/write the directory. Preserve the existing database instead of starting from seed examples. No personal cars are seeded by current code.
 
-## Containers
+## Deploy the published image
+
+The Docker Hub image is `elgon2003/curbwatch`, currently for `linux/amd64`. It includes the built frontend, bundled OCR assets, all service roles, license notices and deployment templates. There are no default accounts or personal records in the image.
+
+Create an empty deployment directory, then extract the standalone Compose file from the image:
+
+```sh
+docker run --rm --entrypoint cat elgon2003/curbwatch:latest /app/.deploy/compose.yaml > compose.yaml
+docker compose up -d
+docker compose exec api python -m backend.manage create-admin --email you@example.com
+```
+
+Open `http://127.0.0.1:8000`. Shared map links use port 8002. This starts Redis, the owner app, the restricted map service, one worker and one scheduler. All app roles share a named data volume. The deployment only needs its Compose file and an optional `.env`; it never builds from source.
+
+For custom settings, extract the included public template and edit `.env` before startup:
+
+```sh
+docker run --rm --entrypoint cat elgon2003/curbwatch:latest /app/.deploy/env.example > .env
+```
+
+For example, set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.2.0` to pin a release, or configure external HTTPS origins. Do not overwrite an existing `.env` when updating. To update containers while retaining their volume:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+The repository's [compose.hub.yaml](../compose.hub.yaml) is the same standalone deployment file. When using that filename directly, add `-f compose.hub.yaml` to Compose commands. Both variants use the `curbwatch` project name and the same named volume as the source-build Compose file when run on the same Docker host. Changing deployment directories does not create a separate garage unless you also choose a different project name with `-p`.
+
+## Build from source
 
 ```sh
 cp .env.example .env
@@ -35,6 +64,20 @@ services:
 ```
 
 Mount files required by any other role there too if using a secret broker URL or external auth key. Set the corresponding `_FILE` options in `.env`; files must be readable by uid 10001. Compose merges distinct mount targets with the base data-volume mount. The Terraform example accepts a map of individual read-only host files and never reads their contents into configuration.
+
+## Publish to Docker Hub
+
+For a manual publish, authenticate with `docker login` and build from a reviewed checkout. Use a new version tag for each release; update `latest` to the same tested image:
+
+```sh
+docker build --build-arg VERSION=0.2.0 --build-arg VCS_REF="$(git rev-parse HEAD)" -t elgon2003/curbwatch:0.2.0 .
+docker run --rm -e PARKING_FETCH_STREETS_ON_START=false elgon2003/curbwatch:0.2.0 init
+docker tag elgon2003/curbwatch:0.2.0 elgon2003/curbwatch:latest
+docker push elgon2003/curbwatch:0.2.0
+docker push elgon2003/curbwatch:latest
+```
+
+The [Publish Docker image workflow](../.github/workflows/publish-image.yml) runs the existing CI checks before publishing. Add a Docker Hub personal access token for `elgon2003` with write access as the GitHub Actions repository secret `DOCKERHUB_TOKEN`. Never commit the token. Run the workflow manually with a tag, or publish a GitHub release: `v0.2.0` publishes `0.2.0`, and a stable release also updates `latest`. Prereleases do not update `latest`. The workflow builds Linux amd64 images, includes SBOM/provenance attestations, and pins its actions to reviewed revisions.
 
 ## Reverse proxy and HTTPS
 

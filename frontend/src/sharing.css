@@ -3,12 +3,23 @@
   max-width: 100%;
   max-height: calc(100dvh - 48px);
   padding: 28px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.share-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
 }
 .share-header {
   display: flex;
   align-items: flex-start;
   gap: 18px;
-  padding-right: 20px;
+  padding-right: 36px;
+  flex-shrink: 0;
 }
 .share-header .modal-icon {
   flex-shrink: 0;
@@ -284,26 +295,29 @@
     padding: 10px 12px;
   }
 }
-@media (max-width: 740px) {
+@media (max-width: 740px), (max-width: 980px) and (max-height: 500px) {
   .modal.share-dialog {
     width: 100%;
-    padding: 24px 20px;
-    max-height: calc(100dvh - 32px);
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    max-height: 92dvh;
   }
   .share-header {
     display: block;
-    padding-right: 5px;
+    padding-right: 36px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
   }
-  .share-header .modal-icon {
-    width: 42px;
-    height: 42px;
-    margin-bottom: 16px;
+  .share-header .modal-icon,
+  .share-header .eyebrow {
+    display: none;
   }
   .share-header h2 {
     font-size: 24px;
+    margin-top: 0;
   }
   .share-header p {
-    font-size: 12px;
+    font-size: 13px;
+    color: #617156;
   }
   .share-layout,
   .share-link-grid {
@@ -314,7 +328,95 @@
     margin-top: 20px;
   }
   .share-create {
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
+  }
+  .share-create label[for="share-expiry"],
+  .share-create input,
+  .share-create .select-trigger {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .modal.share-dialog .share-create > label {
+    font-size: 14px;
+  }
+  .share-create input,
+  .share-create .select-trigger,
+  .share-result input {
+    min-height: 46px;
+    font-size: 16px;
+  }
+  .share-dialog .button,
+  .share-dialog .share-pagination .button {
+    min-height: 44px;
+    font-size: 14px;
+    padding: 10px 14px;
+    white-space: normal;
+  }
+  .share-create .button {
+    width: 100%;
+  }
+  .share-preview-empty {
+    display: none;
+  }
+  .share-local-note,
+  .share-error {
+    font-size: 13px;
+  }
+  .share-link-list h3 {
+    font-size: 17px;
+  }
+  .share-link-list h3 span {
+    font-size: 12px;
+  }
+  .share-link-list > p,
+  .share-link-row > div > span,
+  .share-status {
+    font-size: 13px;
+    color: #64715c;
+  }
+  .share-link-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  .share-link-row strong {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .share-link-row .button {
+    align-self: flex-start;
+  }
+  .share-pagination {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .share-pagination > span {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: #64715c;
+  }
+  .share-result label {
+    font-size: 14px;
+  }
+  .share-result p {
+    font-size: 13px;
+    color: #617156;
+  }
+  .share-result-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .share-result-actions a {
+    text-decoration: none;
+  }
+  .share-result-actions .button {
+    width: 100%;
+  }
+  .share-header p {
+    line-height: 1.6;
   }
   .share-result {
     padding: 13px;

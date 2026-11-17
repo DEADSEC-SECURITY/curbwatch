@@ -14,6 +14,7 @@ import StreetMap from "./components/StreetMap.vue";
 import TimelinePlayback from "./components/TimelinePlayback.vue";
 import { useTimelinePlayback } from "./timeline/playback";
 import { localNow, hourLabel } from "./api";
+import { usePhoneLayout, useDialogFocus } from "./dialog.js";
 
 const historyDays = ref(String(runtime.defaultHistoryDays));
 const initial = localNow();
@@ -33,6 +34,12 @@ const summary = computed(() =>
     (street) => street.street_key === selected.value,
   ),
 );
+const phone = usePhoneLayout(),
+  streetPanel = ref(null);
+const streetSheetOpen = computed(() => phone.value && Boolean(summary.value));
+useDialogFocus(streetSheetOpen, streetPanel, () => {
+  selected.value = "";
+});
 const hourlyMax = computed(() =>
   Math.max(1, ...(activity.value?.hourly_counts || [])),
 );
@@ -45,7 +52,8 @@ const {
 } = useTimelinePlayback({
   hour,
   following,
-  available: () => Boolean(activity.value && !error.value),
+  available: () =>
+    Boolean(activity.value && !error.value && !streetSheetOpen.value),
   busy: () => loading.value,
 });
 watch([day, token, historyDays], () => {
@@ -179,8 +187,15 @@ onBeforeUnmount(() => {
         <h1>Street activity.</h1>
         <p>Explore parking ticket patterns in Syracuse, one hour at a time.</p>
       </div>
-      <button class="button secondary" :disabled="loading" @click="refresh">
-        <RefreshCw :size="16" :class="{ spin: loading }" />Refresh map
+      <button
+        class="button secondary"
+        aria-label="Refresh map"
+        :disabled="loading"
+        @click="refresh"
+      >
+        <RefreshCw :size="18" :class="{ spin: loading }" /><span
+          >Refresh map</span
+        >
       </button>
     </div>
     <HistoryPeriod v-model="historyDays" :period="activity?.period" />
@@ -220,20 +235,20 @@ onBeforeUnmount(() => {
               >
             </div>
             <div class="timeline-date">
-              <button aria-label="Previous day" @click="moveDay(-1)">
-                <ChevronLeft :size="17" />
-              </button>
               <input
                 v-model="day"
                 type="date"
                 aria-label="Activity date"
                 @change="following = false"
               />
-              <button aria-label="Next day" @click="moveDay(1)">
-                <ChevronRight :size="17" />
+              <button aria-label="Previous day" @click="moveDay(-1)">
+                <ChevronLeft :size="17" />
               </button>
               <button class="now-button" :class="{ following }" @click="now">
                 <span></span>Now
+              </button>
+              <button aria-label="Next day" @click="moveDay(1)">
+                <ChevronRight :size="17" />
               </button>
             </div>
           </div>
@@ -281,14 +296,27 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </section>
-      <aside class="street-panel">
+      <div
+        v-if="streetSheetOpen"
+        class="street-sheet-backdrop"
+        @click="selected = ''"
+      ></div>
+      <aside
+        ref="streetPanel"
+        class="street-panel"
+        :class="{ 'street-sheet-open': streetSheetOpen }"
+        :role="streetSheetOpen ? 'dialog' : undefined"
+        :aria-modal="streetSheetOpen ? true : undefined"
+        :aria-label="streetSheetOpen ? 'Street overview' : undefined"
+        :tabindex="streetSheetOpen ? -1 : undefined"
+      >
         <div class="street-panel-heading">
           <div>
             <h2>{{ summary ? "Street overview" : "Observed streets" }}</h2>
             <p>Activity around {{ hourLabel(hour) }}</p>
           </div>
           <button v-if="summary" class="text-button" @click="selected = ''">
-            All streets
+            {{ phone ? "Close street details" : "All streets" }}
           </button>
         </div>
         <div v-if="summary" class="street-detail">

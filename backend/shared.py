@@ -24,7 +24,12 @@ async def lifespan(app):
 
 
 app = FastAPI(
-    title="Curbwatch shared map", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
+    title="Curbwatch shared map",
+    version="0.2.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+    lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,

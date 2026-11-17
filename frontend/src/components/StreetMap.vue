@@ -22,6 +22,7 @@ const container = ref(null);
 const mapError = ref(false);
 maplibregl.setWorkerUrl(workerUrl);
 let map,
+  localGeometry,
   ready = false,
   observer,
   disposed = false;
@@ -63,10 +64,30 @@ function fit() {
       duration: 800,
     });
 }
+function focusSelected() {
+  if (!ready || !props.selected) return;
+  const features =
+    localGeometry?.features?.filter(
+      (feature) => feature.properties.street_key === props.selected,
+    ) || [];
+  const bounds = new maplibregl.LngLatBounds();
+  function add(coords) {
+    if (typeof coords[0] === "number") bounds.extend(coords);
+    else coords.forEach(add);
+  }
+  features.forEach((feature) => add(feature.geometry.coordinates));
+  if (!bounds.isEmpty())
+    map.fitBounds(bounds, {
+      padding: 55,
+      maxZoom: 16,
+      duration: 600,
+    });
+}
 
 onMounted(async () => {
   const localStreets =
     props.streetData || (await api("/streets").catch(() => empty));
+  localGeometry = localStreets;
   let style = {
     version: 8,
     sources: {},
@@ -159,7 +180,7 @@ onMounted(async () => {
       {
         id: "selected",
         type: "line",
-        source: "activity",
+        source: "streets",
         filter: ["==", ["get", "street_key"], ""],
         layout: { "line-cap": "round" },
         paint: { "line-color": "#203d31", "line-width": 10 },
@@ -183,7 +204,8 @@ onMounted(async () => {
     });
     ready = true;
     update();
-    fit();
+    if (props.selected) focusSelected();
+    else fit();
   });
   map.on("error", (e) => {
     if (e.sourceId === "basemap") mapError.value = true;
@@ -197,14 +219,7 @@ watch(
   () => props.selected,
   () => {
     update();
-    const features = props.activity?.features?.filter(
-      (f) => f.properties.street_key === props.selected,
-    );
-    if (ready && features?.length) {
-      const coords = features[0].geometry.coordinates;
-      const first = typeof coords[0][0] === "number" ? coords[0] : coords[0][0];
-      map.easeTo({ center: first, duration: 600 });
-    }
+    focusSelected();
   },
 );
 onBeforeUnmount(() => {
@@ -224,7 +239,7 @@ defineExpose({ fit });
       :aria-label="`${runtime.locationLabel} street activity map`"
     ></div>
     <div class="map-location">
-      <MapPin :size="15" /><span>Syracuse, New York</span
+      <MapPin :size="15" /><span>{{ runtime.locationLabel }}</span
       ><span class="map-location-tag">{{ contextLabel }}</span>
     </div>
     <div class="map-controls">
@@ -242,7 +257,7 @@ defineExpose({ fit });
         <LocateFixed :size="18" />
       </button>
     </div>
-    <div v-if="!activity?.streets?.length" class="map-empty">
+    <div v-if="!activity?.streets?.length && !selected" class="map-empty">
       <MapPin :size="21" /><strong>Your streets will appear here</strong
       ><span>{{ emptyMessage }}</span>
     </div>
