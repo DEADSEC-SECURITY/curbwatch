@@ -12,11 +12,11 @@ Import CSV or JSON from Ticket history. Use a License Plate column or select a v
 
 ## Street activity
 
-The default is the current configured timezone/hour and the last 90 days. Choose 7/30/90/180/365 days or All history. The selected date is the inclusive end of the window; future days are excluded. Counts in the timeline and map use the same period, exact hour and equal ticket weights. Changing the history window never deletes tickets.
+The default is the current configured timezone/hour and the last 90 days. Use “Base highlights on” in the map toolbar to choose 7/30/90/180/365 days or All history. The map always uses all monitored vehicles; the vehicle filter in Ticket history only filters that list. The selected date is the inclusive end of the window; future days are excluded. Counts in the timeline and map use the same period, exact hour and equal ticket weights. Changing the history window never deletes tickets.
 
 The activity index is the fraction of a street's ticketed dates with at least one ticket in the selected hour. Low is below 25%, moderate below 60%, high at least 60%. A color score needs three exact-hour tickets across two dates. Sparse samples are blue dashed; gray means no exact-hour sample in the selected period. We do not know where cars were parked on days without tickets, so this is not a calibrated probability of officer presence.
 
-Play loops 24 hour blocks at one- or two-second intervals and waits for each result. Manual period/date/car changes, dialogs, hidden tabs and navigation pause playback. Selection stays on the same street while hours change. Desktop map layouts fit the available window; long street lists/details scroll inside their panel. Phones use normal page flow.
+Play loops 24 hour blocks at one- or two-second intervals and waits for each result. Manual period/date changes, dialogs, hidden tabs and navigation pause playback. Selection stays on the same street while hours change. Desktop map layouts fit the available window; long street lists/details scroll inside their panel. Phones use normal page flow.
 
 Locations identify streets, often multiple blocks; they do not identify exact patrol locations. Unmatched places are listed without invented coordinates. Background maps and the ticket portal need internet; downloaded road geometry is cached locally.
 

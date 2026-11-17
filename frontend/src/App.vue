@@ -74,7 +74,7 @@ const cars = ref([]),
 const day = ref(initial.day),
   hour = ref(initial.hour),
   followNow = ref(true),
-  selectedCar = ref("");
+  ticketCar = ref("");
 const selectedStreet = ref(""),
   search = ref(""),
   streetSearch = ref(""),
@@ -142,7 +142,7 @@ const filteredCars = computed(() =>
 const filteredTickets = computed(() =>
   tickets.value.filter(
     (t) =>
-      (!selectedCar.value || t.car_id === Number(selectedCar.value)) &&
+      (!ticketCar.value || t.car_id === Number(ticketCar.value)) &&
       `${t.ticket_number} ${t.location_name} ${t.plate} ${t.plate_state || ""} ${t.description}`
         .toLowerCase()
         .includes(search.value.toLowerCase()),
@@ -199,7 +199,7 @@ const {
     ),
   busy: () => activityLoading.value,
 });
-watch([day, selectedCar, historyDays], () => {
+watch([day, historyDays], () => {
   pausePlayback();
   selectedStreet.value = "";
 });
@@ -225,7 +225,6 @@ async function loadActivity() {
     hour: String(hour.value),
     history_days: historyDays.value,
   });
-  if (selectedCar.value) params.set("car_id", selectedCar.value);
   try {
     const data = await api(`/activity?${params}`);
     if (request === activityRequest) {
@@ -498,7 +497,7 @@ function onEscape(event) {
     selectedStreet.value = "";
   }
 }
-watch([day, hour, selectedCar, historyDays], () => {
+watch([day, hour, historyDays], () => {
   loadActivity();
 });
 watch(
@@ -803,7 +802,6 @@ onBeforeUnmount(() => {
         </div>
 
         <template v-if="page === 'map'">
-          <HistoryPeriod v-model="historyDays" :period="activity?.period" />
           <div
             v-if="activity && !activity.period.ticket_count && stats.tickets"
             class="history-empty-note"
@@ -821,15 +819,10 @@ onBeforeUnmount(() => {
                     <ReceiptText :size="15" />Ticket list
                   </button>
                 </div>
-                <select
-                  v-model="selectedCar"
-                  aria-label="Filter map by vehicle"
-                >
-                  <option value="">All vehicles</option>
-                  <option v-for="car in cars" :key="car.id" :value="car.id">
-                    {{ car.name }} · {{ plateLabel(car) }}
-                  </option>
-                </select>
+                <HistoryPeriod
+                  v-model="historyDays"
+                  :period="activity?.period"
+                />
               </div>
               <StreetMap
                 ref="mapRef"
@@ -1272,10 +1265,7 @@ onBeforeUnmount(() => {
                 aria-label="Search tickets"
               />
             </div>
-            <select
-              v-model="selectedCar"
-              aria-label="Filter tickets by vehicle"
-            >
+            <select v-model="ticketCar" aria-label="Filter tickets by vehicle">
               <option value="">All vehicles</option>
               <option v-for="car in cars" :key="car.id" :value="car.id">
                 {{ car.name }} · {{ plateLabel(car) }}

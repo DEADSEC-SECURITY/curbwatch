@@ -508,10 +508,11 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: 12px 15px;
   gap: 10px;
   border-bottom: 1px solid var(--border);
-  height: 60px;
+  min-height: 60px;
 }
 .segmented {
   display: flex;
@@ -535,14 +536,6 @@ h1 {
   background: #fff;
   color: #43543b;
   box-shadow: 0 1px 3px #23352413;
-}
-.map-toolbar select {
-  font-size: 10px;
-  max-width: 190px;
-  min-height: 31px;
-  background-color: #fff;
-  padding-top: 6px;
-  padding-bottom: 6px;
 }
 .map-shell {
   height: 405px;
@@ -2090,10 +2083,6 @@ dd {
     padding: 7px;
     font-size: 9px;
   }
-  .map-toolbar select {
-    max-width: 130px;
-    font-size: 9px;
-  }
   .timeline-date {
     gap: 0;
   }
@@ -2351,9 +2340,6 @@ dd {
   }
   .map-toolbar {
     padding: 10px 12px;
-  }
-  .map-toolbar select {
-    max-width: 160px;
   }
   .map-toolbar .segmented button {
     font-size: 10px;
