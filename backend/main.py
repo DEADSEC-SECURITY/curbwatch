@@ -133,6 +133,9 @@ async def access_protection(request: Request, call_next):
     return response
 
 
+# OIDC adds routes to auth_router; register them before FastAPI copies it.
+from . import oidc  # noqa: E402, F401
+
 app.include_router(auth_router)
 app.include_router(email_router)
 app.include_router(owner_router, dependencies=[Depends(require_admin)])
