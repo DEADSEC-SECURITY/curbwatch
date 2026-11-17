@@ -1,0 +1,172 @@
+.shared-page {
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+.shared-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.shared-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -1px;
+}
+.shared-brand > span {
+  padding: 3px 9px;
+  border-radius: 8px;
+  color: #203d31;
+  background: var(--lime);
+}
+.shared-readonly {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #63775b;
+  font-size: 12px;
+}
+.shared-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 34px 0 26px;
+}
+.shared-intro h1 {
+  margin: 9px 0;
+  font-size: 34px;
+  letter-spacing: -1.2px;
+  font-weight: 550;
+}
+.shared-intro p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+.shared-workspace .map-shell {
+  min-height: 460px;
+}
+.shared-workspace .street-panel {
+  min-height: 630px;
+  max-height: 740px;
+}
+.shared-workspace .street-row-info strong {
+  max-width: 185px;
+}
+.shared-workspace .street-detail {
+  overflow-y: auto;
+}
+.shared-workspace .street-detail > .level-badge {
+  display: inline-block;
+  margin: 15px 0;
+}
+.shared-workspace .new-hour-note {
+  margin-bottom: 15px;
+}
+.shared-workspace .timeline-date input {
+  max-width: 145px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  padding: 7px;
+  color: #50604a;
+}
+.shared-footer {
+  display: flex;
+  align-items: start;
+  gap: 9px;
+  color: #7c8877;
+  font-size: 11px;
+  line-height: 1.8;
+  padding: 20px 0 8px;
+}
+.shared-footer svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.shared-footer p {
+  margin: 0;
+}
+.shared-error,
+.shared-loading {
+  text-align: center;
+  border: 1px solid var(--border);
+  padding: 60px 24px;
+  background: #fff;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.shared-error h2 {
+  font-size: 22px;
+}
+.shared-error p {
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 450px;
+  margin: 0 auto 22px;
+}
+.shared-empty {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 22px;
+  line-height: 1.8;
+}
+@media (max-width: 740px) {
+  .shared-page {
+    padding: 18px 14px;
+  }
+  .shared-header {
+    align-items: start;
+  }
+  .shared-brand {
+    font-size: 23px;
+  }
+  .shared-readonly {
+    max-width: 130px;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .shared-readonly svg {
+    flex-shrink: 0;
+  }
+  .shared-intro {
+    flex-wrap: wrap;
+    padding: 26px 0 20px;
+  }
+  .shared-intro h1 {
+    font-size: 30px;
+  }
+  .shared-workspace .timeline-heading {
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .shared-workspace .timeline-date {
+    width: 100%;
+    justify-content: space-between;
+    gap: 5px;
+  }
+  .shared-workspace .timeline-date input {
+    padding: 9px 4px;
+  }
+  .shared-workspace .timeline-date button {
+    min-height: 40px;
+  }
+  .shared-workspace .street-panel {
+    min-height: 280px;
+    max-height: 520px;
+  }
+  .shared-workspace .street-row {
+    min-height: 56px;
+  }
+  .shared-workspace .street-list {
+    min-height: 100px;
+  }
+}

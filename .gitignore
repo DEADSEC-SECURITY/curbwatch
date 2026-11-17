@@ -1,0 +1,42 @@
+# Runtime records, keys, emails and backups
+/data/
+/artifacts/
+*.sqlite*
+*.db
+*.key
+*.pem
+*.log
+.env
+.env.*
+!.env.example
+/secrets/
+# Local tooling and generated builds
+.agents/
+.aws/
+.codex/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+frontend/node_modules/
+frontend/dist/
+frontend/public/ocr/
+frontend/public/icons/
+frontend/src/ocr-assets.json
+frontend/src/plate-states.json
+# Infrastructure state may contain secrets
+**/.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+# Editor / OS metadata
+.DS_Store
+.idea/
+.vscode/
+frontend/public/licenses/

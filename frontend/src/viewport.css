@@ -1,0 +1,321 @@
+/* Keep the desktop map workspace in the window; long street details scroll inside their panel. */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .app-layout.map-page {
+    height: 100dvh;
+    min-height: 0;
+  }
+  .map-page > main {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .map-page .topbar {
+    height: 52px;
+    flex: 0 0 52px;
+    padding: 0 24px;
+  }
+  .map-page .page-content {
+    width: 100%;
+    max-width: none;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 24px 12px;
+  }
+  .map-page .page-content > * {
+    flex-shrink: 0;
+  }
+  .map-page .page-heading {
+    margin: 0;
+    gap: 16px;
+  }
+  .map-page h1 {
+    font-size: 28px;
+    margin: 4px 0;
+  }
+  .map-page .page-heading p {
+    font-size: 11px;
+  }
+  .map-page .stats-row {
+    margin: 0;
+    gap: 12px;
+  }
+  .map-page .stat-card {
+    min-height: 62px;
+    padding: 10px 14px;
+  }
+  .map-page .stat-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .map-page .stat-card strong {
+    font-size: 23px;
+    margin-top: 2px;
+  }
+  .map-page .map-toolbar {
+    flex: 0 0 44px;
+    height: 44px;
+    padding: 6px 12px;
+  }
+  .map-page .data-note,
+  .map-page .map-bottom-note {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .map-page .insight-note {
+    margin: 0;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .map-page .insight-note p {
+    font-size: 9px;
+    line-height: 1.5;
+  }
+  .map-page .offline-banner,
+  .map-page .error-banner,
+  .map-page .check-banner {
+    margin: 0;
+    padding: 8px 12px;
+  }
+
+  .shared-page {
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 24px 12px;
+  }
+  .shared-header {
+    flex-shrink: 0;
+    padding-bottom: 12px;
+  }
+  .shared-intro {
+    flex-shrink: 0;
+    padding: 16px 0;
+  }
+  .shared-intro h1 {
+    font-size: 28px;
+    margin: 5px 0;
+  }
+  .shared-intro p {
+    font-size: 12px;
+  }
+  .shared-footer {
+    flex-shrink: 0;
+    padding: 8px 0 0;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .map-page .map-workspace,
+  .shared-page .map-workspace {
+    flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .map-page .map-panel,
+  .shared-page .map-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .map-page .map-shell,
+  .shared-page .shared-workspace .map-shell {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+  }
+  .map-page .timeline-panel,
+  .shared-page .timeline-panel {
+    flex-shrink: 0;
+    padding: 12px 16px 9px;
+  }
+  .map-page .timeline-playback,
+  .shared-page .timeline-playback {
+    margin-top: 9px;
+  }
+  .map-page .hour-chart,
+  .shared-page .hour-chart {
+    margin-top: 9px;
+    height: 52px;
+  }
+  .map-page .hour-chart button,
+  .shared-page .hour-chart button {
+    height: 52px;
+    gap: 5px;
+  }
+  .map-page .hour-bar,
+  .shared-page .hour-bar {
+    max-height: 32px;
+  }
+  .map-page .street-panel,
+  .shared-page .shared-workspace .street-panel {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+  .map-page .street-panel-heading,
+  .shared-page .street-panel-heading {
+    flex-shrink: 0;
+    padding: 14px;
+  }
+  .map-page .street-search {
+    flex-shrink: 0;
+    margin: 0 14px 10px;
+  }
+  .map-page .street-list,
+  .shared-page .street-list {
+    min-height: 0;
+    flex: 1 1 0;
+    overflow-y: auto;
+  }
+  .map-page .street-detail,
+  .shared-page .street-detail {
+    min-height: 0;
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding: 10px 16px;
+  }
+  .map-page .street-panel-footer,
+  .shared-page .street-panel-footer {
+    flex-shrink: 0;
+    padding: 10px 14px;
+  }
+  .map-page .street-row,
+  .shared-page .street-row {
+    padding: 12px 14px;
+  }
+  .map-page .map-legend,
+  .shared-page .map-legend {
+    flex-wrap: wrap;
+    max-width: calc(100% - 34px);
+    row-gap: 6px;
+  }
+}
+
+@media (min-width: 1024px) and (min-height: 640px) and (max-height: 800px) {
+  .map-page .page-content {
+    padding: 12px 18px 8px;
+    gap: 7px;
+  }
+  .map-page .page-heading .eyebrow {
+    display: none;
+  }
+  .map-page h1 {
+    font-size: 26px;
+    margin: 0 0 3px;
+  }
+  .map-page .stat-card {
+    min-height: 54px;
+    padding: 7px 12px;
+  }
+  .map-page .stat-card strong {
+    font-size: 21px;
+  }
+  .map-page .insight-note {
+    padding: 6px 10px;
+  }
+  .map-page .timeline-panel,
+  .shared-page .timeline-panel {
+    padding: 9px 12px 7px;
+  }
+  .map-page .timeline-playback,
+  .shared-page .timeline-playback {
+    margin-top: 6px;
+  }
+  .map-page .hour-chart,
+  .shared-page .hour-chart {
+    margin-top: 5px;
+  }
+  .shared-page {
+    padding: 12px 20px 8px;
+  }
+  .shared-intro {
+    padding: 10px 0;
+  }
+  .map-page .monitor-card {
+    display: none;
+  }
+}
+
+.history-period {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.history-period > label {
+  font-size: 12px;
+  color: #78886b;
+}
+.history-period > .select-trigger {
+  width: 180px;
+  flex: 0 0 180px;
+}
+.history-period .select-trigger {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.history-period-summary {
+  font-size: 12px;
+  color: #536a46;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.history-period-summary small {
+  font-size: 10px;
+  color: #89967e;
+}
+.history-empty-note {
+  padding: 9px 12px;
+  background: #eef3e5;
+  color: #637a50;
+  font-size: 12px;
+  border-radius: 7px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+.map-page .history-period {
+  margin: 0;
+}
+.shared-page > .history-period {
+  margin: 0 0 12px;
+}
+@media (max-width: 650px) {
+  .history-period {
+    gap: 8px;
+  }
+  .history-period-summary {
+    flex-basis: 100%;
+  }
+}
+@media (min-width: 1024px) and (max-height: 799px) {
+  .map-page .history-period,
+  .shared-page > .history-period {
+    margin: 0;
+  }
+  .history-period .select-trigger {
+    min-height: 32px;
+    padding: 5px 10px;
+  }
+  .history-period-summary {
+    font-size: 10px;
+  }
+  .history-empty-note {
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 740px) {
+  .app-layout .sidebar-scan {
+    display: none;
+  }
+}

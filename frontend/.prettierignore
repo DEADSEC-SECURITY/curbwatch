@@ -1,0 +1,7 @@
+node_modules/
+dist/
+public/ocr/
+public/icons/
+public/licenses/
+src/ocr-assets.json
+src/plate-states.json

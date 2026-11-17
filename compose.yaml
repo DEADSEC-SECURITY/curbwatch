@@ -1,0 +1,52 @@
+name: curbwatch
+x-app: &app
+  build: .
+  image: ${CURBWATCH_IMAGE:-curbwatch:local}
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+    PARKING_DATA_DIR: /data
+    PARKING_HOST: 0.0.0.0
+    PARKING_SHARE_HOST: 0.0.0.0
+  volumes:
+    - parking-data:/data
+  depends_on:
+    redis:
+      condition: service_healthy
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+
+services:
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    <<: *app
+    command: ["api"]
+    ports: ["${PARKING_LISTEN_ADDRESS:-127.0.0.1}:${PARKING_PORT:-8000}:${PARKING_PORT:-8000}"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; from backend.config import PORT; urllib.request.urlopen(f'http://127.0.0.1:{PORT}/api/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+  shared-map:
+    <<: *app
+    command: ["viewer"]
+    ports: ["${PARKING_LISTEN_ADDRESS:-127.0.0.1}:${PARKING_SHARE_PORT:-8002}:${PARKING_SHARE_PORT:-8002}"]
+  worker:
+    <<: *app
+    command: ["worker"]
+  scheduler:
+    <<: *app
+    command: ["scheduler"]
+
+volumes:
+  parking-data:

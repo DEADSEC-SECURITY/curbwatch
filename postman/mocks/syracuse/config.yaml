@@ -1,0 +1,9 @@
+version: 1
+name: Syracuse ticket portal
+description: Synthetic search shapes derived from the provided n8n flow and read-only live checks.
+origin: https://mvb.syr.gov
+port: 4510
+interceptRequests: true
+scenarios:
+  - name: default
+    path: default.js

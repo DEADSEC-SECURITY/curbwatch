@@ -1,0 +1,22 @@
+# Nonsecret values only. Terraform state records environment values.
+environment = {
+  PARKING_BASE_URL               = "https://parking.example.com"
+  PARKING_SHARE_BASE_URL         = "https://map.example.com"
+  PARKING_BOOTSTRAP_ADMIN_EMAIL  = "admin@example.com"
+  PARKING_OIDC_NAME              = "Authentik"
+  PARKING_OIDC_ISSUER            = "https://auth.example.com/application/o/curbwatch/"
+  PARKING_OIDC_CLIENT_ID         = "curbwatch"
+  PARKING_SMTP_HOST              = "smtp.example.com"
+  PARKING_SMTP_PORT              = "587"
+  PARKING_SMTP_FROM_EMAIL        = "parking@example.com"
+  PARKING_SMTP_USERNAME          = "parking@example.com"
+  PARKING_EMAIL_ENABLED          = "true"
+  PARKING_DEFAULT_HISTORY_DAYS   = "90"
+}
+# These files must already exist on the Docker host and be readable by uid 10001.
+# Only their paths, not contents, enter Terraform configuration/state.
+secret_files = {
+  PARKING_BOOTSTRAP_ADMIN_PASSWORD = "/srv/curbwatch-secrets/admin-password"
+  PARKING_OIDC_CLIENT_SECRET       = "/srv/curbwatch-secrets/oidc-secret"
+  PARKING_SMTP_PASSWORD            = "/srv/curbwatch-secrets/smtp-password"
+}
