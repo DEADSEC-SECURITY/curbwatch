@@ -17,6 +17,7 @@ artifacts
 secrets
 .env
 .env.*
+!.env.example
 *.sqlite*
 *.key
 *.pem

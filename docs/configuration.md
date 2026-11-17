@@ -24,7 +24,7 @@ All options have safe defaults; a fresh database contains no cars or default use
 | `PARKING_TIMEZONE_LABEL` | `Eastern time` for the default zone | Human-readable frontend/email label; another zone defaults to its IANA name |
 | `PARKING_CORS_ORIGINS` | local Vite origins for HTTP; empty for HTTPS | Comma-separated separate frontend origins; same-origin deployments need none |
 
-`CURBWATCH_IMAGE` and `REDIS_IMAGE` optionally change the Compose image names. Container listeners and host-published interfaces are distinct. External HTTPS origins must match the reverse proxy hostname; no path-prefix hosting is supported. Reverse-proxy access logs should omit OIDC callback query strings and all credentials.
+`CURBWATCH_IMAGE` and `REDIS_IMAGE` optionally change the Compose image names. The source-build `compose.yaml` defaults to `curbwatch:local`; the standalone `compose.hub.yaml` defaults to `elgon2003/curbwatch:latest` and has no build step. Set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.1.0` to pin a release. Container listeners and host-published interfaces are distinct. External HTTPS origins must match the reverse proxy hostname; no path-prefix hosting is supported. Reverse-proxy access logs should omit OIDC callback query strings and all credentials.
 
 ## Collection, map and source
 
@@ -53,7 +53,8 @@ The city-source URL in `.env.example` is the complete default. Other geometry ca
 
 | Variable | Default / meaning |
 |---|---|
-| `PARKING_SESSION_HOURS` | 8; absolute session lifetime (1–168) |
+| `PARKING_SESSION_HOURS` | 8; absolute local-password/invitation session lifetime in hours (1–168) |
+| `PARKING_SSO_SESSION_HOURS` | 720 (30 days); absolute SSO session lifetime in hours (1–2160) |
 | `PARKING_INVITE_TTL_HOURS` | 168; one-use invitation lifetime (1–720) |
 | `PARKING_COOKIE_SECURE` | Automatic with HTTPS; can force true but cannot disable it on an HTTPS origin |
 | `PARKING_BOOTSTRAP_ADMIN_EMAIL` | First administrator email; used only on an empty users table |

@@ -16,21 +16,56 @@ Self-hosted parking-ticket monitoring, a street activity map, and an installable
 
 New installations start with an empty garage. No personal records or municipal road dataset are shipped in the repository.
 
-## Start with Docker Compose
+## Screenshots
 
-Requires Docker with Compose v2.24+.
+These screenshots use fictional vehicles, tickets, users and example email settings in a separate local preview.
+
+**Street activity and hourly timeline** — explore street highlights, history periods and exact-hour ticket patterns.
+
+![Street activity map with color-coded streets, history period controls and an hourly timeline](docs/screenshots/street-activity.jpg)
+
+| Vehicle monitoring | Ticket history |
+| --- | --- |
+| ![Vehicle cards with sample plates, monitoring status, outstanding balances and paid ticket totals](docs/screenshots/vehicles.jpg) | ![Searchable ticket history with vehicle filters, issue dates, violations, payment status and balances](docs/screenshots/ticket-history.jpg) |
+| **On-device plate scanner** | **Restricted map sharing** |
+| ![Plate scanner with photo upload, live camera and manual entry options](docs/screenshots/plate-scanner.jpg) | ![Map sharing dialog with link expiry controls and active and revoked example links](docs/screenshots/map-sharing.jpg) |
+| **Email notifications** | **People and access** |
+| ![Email settings for SMTP, new-ticket alerts and monthly outstanding-ticket reports](docs/screenshots/email-notifications.jpg) | ![Admin settings with invited and active users, role controls and OpenID Connect configuration](docs/screenshots/people-access.jpg) |
+
+<details>
+<summary>Monthly email report preview</summary>
+
+The monthly report groups outstanding tickets by vehicle and includes balances, ticket ages and a link to the payment portal.
+
+![Example monthly email report showing an outstanding balance, sample tickets and a payment portal link](docs/screenshots/monthly-report.jpg)
+
+</details>
+
+## Deploy from Docker Hub
+
+The published image is [elgon2003/curbwatch](https://hub.docker.com/r/elgon2003/curbwatch) for Linux amd64. Requires Docker with Compose v2.24+.
+
+Run these commands in an empty deployment directory. The first command extracts the included Compose file from the image; no source checkout or build is needed.
 
 ```sh
-git clone https://github.com/DEADSEC-SECURITY/curbwatch.git
-cd curbwatch
-cp .env.example .env
-docker compose up --build -d
+docker run --rm --entrypoint cat elgon2003/curbwatch:latest /app/.deploy/compose.yaml > compose.yaml
+docker compose up -d
 docker compose exec api python -m backend.manage create-admin --email you@example.com
 ```
 
 The admin command prompts for a password. Open [the owner app](http://127.0.0.1:8000). Shared links use port 8002. Published ports stay on loopback by default. First startup downloads street geometry into the persistent data volume; if unavailable, retry with `docker compose exec api python -m backend.street_download`.
 
 For external access, configure the two public base URLs and a trusted HTTPS reverse proxy. Phone cameras and PWA installation need HTTPS. Do not expose Redis. Configure SMTP/OIDC in admin Settings or entirely through environment variables; secrets can be mounted as files.
+
+To customize deployment settings, extract the environment template and edit `.env` before starting:
+
+```sh
+docker run --rm --entrypoint cat elgon2003/curbwatch:latest /app/.deploy/env.example > .env
+```
+
+Update with `docker compose pull && docker compose up -d`. The named data volume persists across container updates. Set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.2.0` in `.env` to pin a version.
+
+To build from source instead, clone this repository, copy `.env.example` to `.env`, and run `docker compose up --build -d` with the repository's original `compose.yaml`. See [deployment and publishing](docs/deployment.md) for details.
 
 ## Deployment and configuration
 

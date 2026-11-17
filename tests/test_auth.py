@@ -1,6 +1,8 @@
 import hashlib
 import json
 import time
+from http.cookies import SimpleCookie
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 from fastapi.testclient import TestClient
@@ -307,6 +309,98 @@ def finish_flow(browser, params):
         params={"state": params["state"][0], "code": "one-use-code"},
         follow_redirects=False,
     )
+
+
+def issued_session_cookie(response):
+    cookies = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookies.load(header)
+    return cookies[auth.COOKIE]
+
+
+def test_password_login_uses_its_own_configured_lifetime(client, monkeypatch):
+    timestamp = 1_900_000_000
+    monkeypatch.setattr(auth, "time", SimpleNamespace(time=lambda: timestamp))
+    monkeypatch.setattr(config, "AUTH_SESSION_HOURS", 12)
+    monkeypatch.setattr(config, "AUTH_SSO_SESSION_HOURS", 720)
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "admin@example.com", "password": "Testing-password-123!"},
+    )
+    assert response.status_code == 200
+    cookie = issued_session_cookie(response)
+    assert int(cookie["max-age"]) == 12 * 3600
+    with connect() as db:
+        session = db.execute(
+            "SELECT expires_at FROM auth_sessions WHERE token_hash=?", (digest(cookie.value),)
+        ).fetchone()
+        assert session["expires_at"] == timestamp + 12 * 3600
+
+
+@pytest.mark.parametrize("hours", [720, 1080])
+def test_sso_cookie_and_server_session_use_extended_absolute_lifetime(
+    client, oidc_provider, monkeypatch, hours
+):
+    _, claims, _ = oidc_provider
+    timestamp = 1_900_000_000
+    # Advance only the app's session clock, leaving ID-token validation on real time.
+    monkeypatch.setattr(auth, "time", SimpleNamespace(time=lambda: timestamp))
+    monkeypatch.setattr(config, "AUTH_SESSION_HOURS", 8)
+    monkeypatch.setattr(config, "AUTH_SSO_SESSION_HOURS", hours)
+    with TestClient(app) as browser:
+        response = finish_flow(browser, begin_flow(browser, claims))
+        assert response.headers["location"].endswith("#map")
+        cookie = issued_session_cookie(response)
+        assert int(cookie["max-age"]) == hours * 3600
+        assert cookie["httponly"] and cookie["samesite"].lower() == "lax"
+        expected_expiry = timestamp + hours * 3600
+        with connect() as db:
+            assert (
+                db.execute(
+                    "SELECT expires_at FROM auth_sessions WHERE token_hash=?",
+                    (digest(cookie.value),),
+                ).fetchone()["expires_at"]
+                == expected_expiry
+            )
+        timestamp += 9 * 3600
+        assert browser.get("/api/auth/session").status_code == 200
+        timestamp = expected_expiry - 1
+        response = browser.get("/api/auth/session")
+        assert response.status_code == 200 and "set-cookie" not in response.headers
+        with connect() as db:
+            assert (
+                db.execute(
+                    "SELECT expires_at FROM auth_sessions WHERE token_hash=?",
+                    (digest(cookie.value),),
+                ).fetchone()["expires_at"]
+                == expected_expiry
+            )
+        timestamp = expected_expiry
+        assert browser.get("/api/auth/session").status_code == 401
+        assert browser.get("/api/cars").status_code == 401
+
+
+@pytest.mark.parametrize("revocation", ["logout", "password_reset"])
+def test_long_sso_sessions_can_be_revoked_immediately(client, oidc_provider, revocation):
+    _, claims, _ = oidc_provider
+    with TestClient(app) as browser:
+        response = finish_flow(browser, begin_flow(browser, claims))
+        token = issued_session_cookie(response).value
+        session = browser.get("/api/auth/session").json()
+        if revocation == "logout":
+            browser.headers["X-CSRF-Token"] = session["csrf_token"]
+            assert browser.post("/api/auth/logout", json={}).status_code == 200
+        else:
+            create_admin("admin@example.com", "Replacement-password-123", reset=True)
+        with connect() as db:
+            assert (
+                db.execute(
+                    "SELECT 1 FROM auth_sessions WHERE token_hash=?", (digest(token),)
+                ).fetchone()
+                is None
+            )
+        browser.cookies.set(auth.COOKIE, token)
+        assert browser.get("/api/auth/session").status_code == 401
 
 
 def test_oidc_full_round_trip_and_browser_bound_single_use_state(client, oidc_provider):

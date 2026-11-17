@@ -96,7 +96,8 @@ def cookie_options():
     return dict(httponly=True, secure=config.AUTH_COOKIE_SECURE, samesite="lax", path="/")
 
 
-def start_session(db, user, response, old_token=""):
+def start_session(db, user, response, old_token="", *, session_hours=None):
+    lifetime = (config.AUTH_SESSION_HOURS if session_hours is None else session_hours) * 3600
     token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     db.execute(
         "DELETE FROM auth_sessions WHERE expires_at<=? OR token_hash=?",
@@ -108,12 +109,12 @@ def start_session(db, user, response, old_token=""):
             digest(token),
             user["id"],
             csrf,
-            int(time.time()) + config.AUTH_SESSION_HOURS * 3600,
+            int(time.time()) + lifetime,
             now(),
         ),
     )
     db.execute("UPDATE users SET last_login_at=? WHERE id=?", (now(), user["id"]))
-    response.set_cookie(COOKIE, token, max_age=config.AUTH_SESSION_HOURS * 3600, **cookie_options())
+    response.set_cookie(COOKIE, token, max_age=lifetime, **cookie_options())
     return {"user": public_user(user), "csrf_token": csrf}
 
 

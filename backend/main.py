@@ -48,7 +48,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="Parking Checker",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
     description="Local vehicle tracking, read-only Syracuse ticket checks, and historical street activity.",
 )

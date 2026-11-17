@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 import { Play, Pause, Repeat2 } from "@lucide/vue";
 defineProps({
   playing: Boolean,
@@ -6,6 +7,7 @@ defineProps({
   disabled: Boolean,
 });
 defineEmits(["toggle", "speed"]);
+const optionsOpen = ref(false);
 </script>
 
 <template>
@@ -25,21 +27,30 @@ defineEmits(["toggle", "speed"]);
         playing ? "Pause" : "Play"
       }}</span>
     </button>
-    <div class="playback-speed" role="group" aria-label="Playback speed">
-      <span>Every</span>
-      <button
-        v-for="interval in [1000, 2000]"
-        :key="interval"
-        type="button"
-        :aria-label="`${interval / 1000} ${interval === 1000 ? 'second' : 'seconds'} per hour`"
-        :aria-pressed="speed === interval"
-        :class="{ chosen: speed === interval }"
-        @click="$emit('speed', interval)"
-      >
-        {{ interval / 1000 }}s
-      </button>
+    <button
+      class="playback-more"
+      :aria-expanded="optionsOpen"
+      @click="optionsOpen = !optionsOpen"
+    >
+      Playback options
+    </button>
+    <div class="playback-options" :class="{ expanded: optionsOpen }">
+      <div class="playback-speed" role="group" aria-label="Playback speed">
+        <span>Every</span>
+        <button
+          v-for="interval in [1000, 2000]"
+          :key="interval"
+          type="button"
+          :aria-label="`${interval / 1000} ${interval === 1000 ? 'second' : 'seconds'} per hour`"
+          :aria-pressed="speed === interval"
+          :class="{ chosen: speed === interval }"
+          @click="$emit('speed', interval)"
+        >
+          {{ interval / 1000 }}s
+        </button>
+      </div>
+      <span class="playback-loop"><Repeat2 :size="13" />Loops 24 hours</span>
     </div>
-    <span class="playback-loop"><Repeat2 :size="13" />Loops 24 hours</span>
   </div>
 </template>
 
@@ -50,6 +61,15 @@ defineEmits(["toggle", "speed"]);
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+.playback-more {
+  display: none;
+}
+.playback-options {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 12px;
 }
 .playback-toggle {
   display: flex;
@@ -103,7 +123,24 @@ defineEmits(["toggle", "speed"]);
   color: #97a18c;
   font-size: 9px;
 }
-@media (max-width: 740px) {
+@media (max-width: 740px), (max-width: 980px) and (max-height: 500px) {
+  .playback-more {
+    display: block;
+    min-height: 44px;
+    padding: 8px;
+    font-size: 12px;
+    color: #526a42;
+    margin-left: auto;
+  }
+  .playback-options {
+    display: none;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    padding: 8px 0;
+  }
+  .playback-options.expanded {
+    display: flex;
+  }
   .timeline-playback {
     gap: 8px;
   }
@@ -115,7 +152,12 @@ defineEmits(["toggle", "speed"]);
     min-width: 38px;
   }
   .playback-loop {
-    font-size: 8px;
+    font-size: 12px;
+  }
+  .playback-speed,
+  .playback-toggle,
+  .playback-speed button {
+    font-size: 13px;
   }
 }
 </style>

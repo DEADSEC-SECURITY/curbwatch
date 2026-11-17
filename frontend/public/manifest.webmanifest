@@ -3,7 +3,7 @@
   "name": "Curbwatch Parking Checker",
   "short_name": "Curbwatch",
   "description": "Scan plates, track tickets, and explore your street history.",
-  "start_url": "/#cars",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f6f7f4",
