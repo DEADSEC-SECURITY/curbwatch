@@ -13,6 +13,7 @@ export function useNearbyActivity({
   storage,
   schedule = setInterval,
   cancel = clearInterval,
+  clearOnError = false,
 }) {
   const roads = ref(null),
     data = ref(null),
@@ -104,8 +105,13 @@ export function useNearbyActivity({
       updatedAt.value = new Date();
       error.value = "";
     } catch (failure) {
-      if (!disposed && id === request)
+      if (!disposed && id === request) {
         error.value = failure.message || "Street activity could not be loaded.";
+        if (clearOnError) {
+          data.value = roads.value = null;
+          geometryRequest = null;
+        }
+      }
     } finally {
       if (!disposed && id === request) loading.value = false;
     }

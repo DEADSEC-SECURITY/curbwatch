@@ -3,7 +3,7 @@
   "info": {
     "title": "Parking Checker",
     "description": "Local vehicle tracking, read-only Syracuse ticket checks, and historical street activity.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "paths": {
     "/api/auth/config": {
@@ -821,6 +821,47 @@
         ]
       }
     },
+    "/api/plates": {
+      "post": {
+        "summary": "Quick Add Plate",
+        "operationId": "quick_add_plate_api_plates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuickPlateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
     "/api/cars/{car_id}": {
       "patch": {
         "summary": "Update Car",
@@ -1358,6 +1399,15 @@
               }
             ],
             "title": "Plate State"
+          },
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "vehicle",
+              "plate"
+            ],
+            "title": "Record Type",
+            "default": "vehicle"
           }
         },
         "type": "object",
@@ -1414,6 +1464,21 @@
               }
             ],
             "title": "Plate State"
+          },
+          "record_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "vehicle",
+                  "plate"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Type"
           }
         },
         "type": "object",
@@ -1659,6 +1724,28 @@
           "plate"
         ],
         "title": "PlateLookup"
+      },
+      "QuickPlateCreate": {
+        "properties": {
+          "plate": {
+            "type": "string",
+            "maxLength": 18,
+            "minLength": 1,
+            "title": "Plate"
+          },
+          "plate_state": {
+            "type": "string",
+            "maxLength": 2,
+            "title": "Plate State",
+            "default": "NY"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "plate"
+        ],
+        "title": "QuickPlateCreate"
       },
       "RetryMail": {
         "properties": {

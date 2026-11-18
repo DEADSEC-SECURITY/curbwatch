@@ -21,8 +21,20 @@ same-origin write protection, an active administrator session and CSRF token. No
 
 ## Shared service
 
-- `GET /share/`: standalone shared frontend, without owner navigation, storage
-  snapshots, PWA worker, install UI, camera, car filter, or ticket history.
+- `GET /share/`: standalone shared frontend with optional current-location/manual
+  street activity and install controls, without owner navigation, storage snapshots,
+  camera, car filter, plate entry or ticket history. The nearby summary uses the same
+  aggregate APIs, independently of map exploration, at the current hour over 90 days.
+- The browser builds a local installation manifest with an explicit launch URL
+  containing the current link fragment, a per-link identity derived from its digest,
+  and `/share/` scope. All manifest asset paths are absolute. The manifest is never
+  requested from the server with a bearer token in its URL. The owner's static
+  manifest continues to launch `/`. Browsers that cannot package a local manifest
+  can save the full shared link as a home-screen shortcut instead.
+- `GET /share/sw.js` and `/icons/*`: install assets. The separate viewer worker is
+  scoped to `/share/`, performs network-only navigation, and shows a connection message
+  offline. It never falls back to the owner shell or caches shared responses or secrets.
+  The normal owner's manifest/worker remain unavailable on the viewer service.
 - `GET /api/shared/activity?day=YYYY-MM-DD&hour=0..23&history_days=90`: requires
   `Authorization: Bearer <token>` on every request. Defaults to current Eastern
   date/hour and 90 days of history. Select 7,30,90,180,365 or 0 (all history). Only allowlisted aggregated street summaries, geometry, scores,
@@ -36,6 +48,9 @@ same-origin write protection, an active administrator session and CSRF token. No
   owner app or API. API data uses `Cache-Control: no-store`; shared pages set
   `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow` and deny framing.
 - No caching of shared map data in localStorage, a service worker, or cookies.
+  Installing stores the launch URL in the browser's app metadata; normal viewer
+  use does not persist the bearer secret in app storage. GPS coordinates stay in memory
+  on the visitor's device; only the optional automatic-location preference is persisted.
   The viewer revalidates on timeline changes and every minute, clearing displayed
   results when authorization fails.
 

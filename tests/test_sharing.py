@@ -120,6 +120,7 @@ def test_viewer_only_receives_aggregates_and_never_car_or_ticket_details(
         "/api/checks",
         "/api/shares",
         "/api/plate-lookups",
+        "/api/plates",
         "/api/activity",
         "/api/streets",
         "/docs",
@@ -144,6 +145,7 @@ def test_valid_shared_link_does_not_open_private_routes(client, viewer, path):
         ("/api/checks", "post"),
         ("/api/import", "post"),
         ("/api/plate-lookups", "post"),
+        ("/api/plates", "post"),
         ("/api/shares", "post"),
         ("/api/shares/anything/revoke", "post"),
         ("/api/shared/activity", "post"),
@@ -231,13 +233,20 @@ def test_viewer_response_headers_and_query_limits(client, viewer):
     )
 
 
-def test_shared_entry_has_no_owner_bundle_installation_or_service_worker(client, viewer):
+def test_shared_entry_has_separate_installation_without_owner_bundle(client, viewer):
     response = viewer.get("/share/")
     assert response.status_code == 200
     assert "<title>Shared map · Curbwatch</title>" in response.text
-    assert "manifest" not in response.text
-    assert "apple-mobile" not in response.text
+    assert 'id="shared-manifest"' in response.text
+    assert "apple-mobile-web-app-capable" in response.text
     assert "owner-" not in response.text
+    worker = viewer.get("/share/sw.js")
+    assert worker.status_code == 200
+    assert "application/javascript" in worker.headers["content-type"]
+    assert "caches." not in worker.text
+    assert "/index.html" not in worker.text
+    assert viewer.get("/icons/icon-192.png").status_code == 200
+    assert viewer.get("/icons/icon-512.png").status_code == 200
     assert "/api/shared/activity" not in client.get("/openapi.json").text
 
 

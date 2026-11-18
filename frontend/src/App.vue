@@ -52,6 +52,7 @@ const emit = defineEmits(["logout", "session"]);
 
 import StreetMap from "./components/StreetMap.vue";
 import PlateScanner from "./components/PlateScanner.vue";
+import QuickPlateForm from "./components/QuickPlateForm.vue";
 import PwaControls from "./components/PwaControls.vue";
 import ShareLinks from "./components/ShareLinks.vue";
 import TimelinePlayback from "./components/TimelinePlayback.vue";
@@ -107,6 +108,8 @@ const scannerOpen = ref(false),
   lookupBusy = ref(false),
   confirmNoTickets = ref(false);
 const sharingOpen = ref(false);
+const quickPlateOpen = ref(false),
+  recordFilter = ref("vehicle");
 const plateStateOptions = [
   { value: "", label: "Not set" },
   ...Object.entries(plateStates)
@@ -143,16 +146,19 @@ const title = computed(
     ({
       today: "Today",
       map: "Street activity",
-      cars: "Your vehicles",
+      cars: "Cars & plates",
       tickets: "Ticket history",
       settings: "Settings",
     })[page.value],
 );
 const filteredCars = computed(() =>
-  cars.value.filter((c) =>
-    `${c.name} ${c.plate} ${c.plate_state || ""} ${plateStates[c.plate_state] || ""}`
-      .toLowerCase()
-      .includes(search.value.toLowerCase()),
+  cars.value.filter(
+    (c) =>
+      (!recordFilter.value ||
+        (c.record_type || "vehicle") === recordFilter.value) &&
+      `${c.name} ${c.plate} ${c.plate_state || ""} ${plateStates[c.plate_state] || ""}`
+        .toLowerCase()
+        .includes(search.value.toLowerCase()),
   ),
 );
 const filteredTickets = computed(() =>
@@ -213,6 +219,10 @@ const hourRange = computed(
   () => `${hourLabel(hour.value)} – ${hourLabel((hour.value + 1) % 24)}`,
 );
 const activeCount = computed(() => cars.value.filter((c) => c.active).length);
+const vehicleCount = computed(
+  () => cars.value.filter((c) => c.record_type !== "plate").length,
+);
+const plateCount = computed(() => cars.value.length - vehicleCount.value);
 const lastErrors = computed(
   () => runs.value.find((r) => r.errors?.length)?.errors || [],
 );
@@ -239,7 +249,8 @@ const {
       !mobileMenu.value &&
       !streetSheetOpen.value &&
       !sharingOpen.value &&
-      !scannerOpen.value,
+      !scannerOpen.value &&
+      !quickPlateOpen.value,
     ),
   busy: () => activityLoading.value,
 });
@@ -367,6 +378,11 @@ async function checkTickets(carId = null) {
     submittingCheck.value = false;
   }
 }
+function plateSaved(result, { addMore }) {
+  recordFilter.value = "plate";
+  if (!addMore) notify(`${result.plate} added for data collection.`);
+  refresh(true);
+}
 function openCar(car = null) {
   editing.value = car;
   form.value = {
@@ -444,6 +460,7 @@ async function saveCar() {
               name: form.value.name,
               email: form.value.email,
               plate_state: form.value.plate_state,
+              record_type: "vehicle",
             }
           : {
               ...form.value,
@@ -454,6 +471,7 @@ async function saveCar() {
     );
     const isNew = !editing.value;
     modal.value = null;
+    recordFilter.value = "vehicle";
     await refresh(true);
     notify(
       isNew
@@ -812,7 +830,7 @@ onBeforeUnmount(() => {
                   : page === "map"
                     ? "Explore the patterns behind your parking tickets."
                     : page === "cars"
-                      ? "All your tracked plates. Add a car and we’ll take it from here."
+                      ? "Cars for you and your friends. Data plates for a fuller street history."
                       : page === "settings"
                         ? "Manage your account and who can access your garage."
                         : "The full picture, from the first ticket to the latest update."
@@ -834,6 +852,13 @@ onBeforeUnmount(() => {
               <ScanLine :size="17" /><span>Scan plate</span>
             </button>
             <button
+              class="button secondary"
+              :disabled="!online"
+              @click="quickPlateOpen = true"
+            >
+              <Plus :size="17" />Quick add plate
+            </button>
+            <button
               v-if="page === 'tickets'"
               class="button secondary"
               @click="openImport"
@@ -844,7 +869,7 @@ onBeforeUnmount(() => {
               class="button primary"
               @click="openCar()"
             >
-              <Plus :size="17" />Add vehicle</button
+              <Plus :size="17" />Add car</button
             ><button
               v-else
               class="button primary"
@@ -860,7 +885,7 @@ onBeforeUnmount(() => {
 
         <TodayDashboard
           v-if="page === 'today'"
-          :vehicles="cars.length"
+          :vehicles="vehicleCount"
           :tickets="stats.tickets || 0"
           :checking="checking"
           :version="activityVersion"
@@ -868,6 +893,8 @@ onBeforeUnmount(() => {
           @street="viewNearbyStreet"
           @scan="scannerOpen = true"
           @check="checkTickets()"
+          @plate="quickPlateOpen = true"
+          @car="openCar()"
         />
 
         <Settings
@@ -889,7 +916,7 @@ onBeforeUnmount(() => {
           <button class="stat-card" @click="navigate('cars')">
             <span class="stat-icon"><CarFront :size="19" /></span>
             <div>
-              <span>Vehicles tracked</span
+              <span>Plates monitored</span
               ><strong
                 >{{ cars.length
                 }}<small>{{ activeCount }} monitoring</small></strong
@@ -1220,7 +1247,7 @@ onBeforeUnmount(() => {
               <div class="street-panel-footer">
                 <CircleHelp :size="16" />
                 <p>
-                  Based on your monitored cars.<br /><strong
+                  Based on your monitored plates.<br /><strong
                     >Limited data doesn’t mean no enforcement.</strong
                   >
                 </p>
@@ -1266,9 +1293,31 @@ onBeforeUnmount(() => {
         <template v-if="page === 'cars'">
           <div class="section-toolbar">
             <div class="filter-pills">
-              <span class="filter-pill selected"
-                >All vehicles <b>{{ cars.length }}</b></span
-              ><span class="monitoring-summary"
+              <button
+                class="filter-pill"
+                :class="{ selected: recordFilter === 'vehicle' }"
+                :aria-pressed="recordFilter === 'vehicle'"
+                @click="recordFilter = 'vehicle'"
+              >
+                Cars <b>{{ vehicleCount }}</b>
+              </button>
+              <button
+                class="filter-pill"
+                :class="{ selected: recordFilter === 'plate' }"
+                :aria-pressed="recordFilter === 'plate'"
+                @click="recordFilter = 'plate'"
+              >
+                Data plates <b>{{ plateCount }}</b>
+              </button>
+              <button
+                class="filter-pill"
+                :class="{ selected: !recordFilter }"
+                :aria-pressed="!recordFilter"
+                @click="recordFilter = ''"
+              >
+                All <b>{{ cars.length }}</b>
+              </button>
+              <span class="monitoring-summary"
                 ><i></i>{{ activeCount }} monitoring</span
               >
             </div>
@@ -1293,13 +1342,20 @@ onBeforeUnmount(() => {
                   ><i></i>{{ car.active ? "Monitoring" : "Paused" }}</span
                 ><button
                   class="icon-button"
-                  :aria-label="`Edit ${car.plate}`"
+                  :aria-label="
+                    car.record_type === 'plate'
+                      ? `Add car details for ${car.plate}`
+                      : `Edit ${car.plate}`
+                  "
                   @click="openCar(car)"
                 >
                   <Pencil :size="16" />
                 </button>
               </div>
               <h2>{{ car.name }}</h2>
+              <p v-if="car.record_type === 'plate'" class="data-plate-label">
+                Data plate · No email notifications
+              </p>
               <a
                 v-if="car.email"
                 class="vehicle-email"
@@ -1312,7 +1368,7 @@ onBeforeUnmount(() => {
                 }}</span><strong>{{ car.plate }}</strong
                 ><span>{{
                   car.plate_state
-                    ? `${car.plate_state} · TRACKED VEHICLE`
+                    ? `${car.plate_state} · ${car.record_type === "plate" ? "DATA PLATE" : "TRACKED CAR"}`
                     : "STATE NOT SET"
                 }}</span>
               </div>
@@ -1358,14 +1414,28 @@ onBeforeUnmount(() => {
                 </button>
               </div>
             </article>
-            <button class="add-vehicle-card" @click="openCar()">
+            <button
+              class="add-vehicle-card"
+              @click="
+                recordFilter === 'plate' ? (quickPlateOpen = true) : openCar()
+              "
+            >
               <span><Plus :size="27" /></span
-              ><strong>One more set of wheels?</strong>
+              ><strong>{{
+                recordFilter === "plate"
+                  ? "Grow the street history."
+                  : "One more set of wheels?"
+              }}</strong>
               <p>
-                Add a license plate to start<br />tracking its parking tickets.
+                {{
+                  recordFilter === "plate"
+                    ? "Add just a plate and state to collect ticket data."
+                    : "Add a car with a name, plate and optional email."
+                }}
               </p>
               <span class="add-vehicle-link"
-                >Add vehicle<ArrowRight :size="15"
+                >{{ recordFilter === "plate" ? "Quick add plate" : "Add car"
+                }}<ArrowRight :size="15"
               /></span>
             </button>
           </div>
@@ -1669,6 +1739,11 @@ onBeforeUnmount(() => {
       @choose="chooseScannedPlate"
       @manual="enterPlateManually"
     />
+    <QuickPlateForm
+      v-if="quickPlateOpen"
+      @close="quickPlateOpen = false"
+      @saved="plateSaved"
+    />
     <div v-if="modal" class="modal-overlay" @click.self="modal = null">
       <section
         class="modal"
@@ -1678,8 +1753,10 @@ onBeforeUnmount(() => {
         :aria-label="
           modal === 'car'
             ? editing
-              ? 'Edit vehicle'
-              : 'Add vehicle'
+              ? editing.record_type === 'plate'
+                ? 'Add car details'
+                : 'Edit car'
+              : 'Add car'
             : modal === 'import'
               ? 'Import ticket history'
               : 'How activity works'
@@ -1695,20 +1772,24 @@ onBeforeUnmount(() => {
         <template v-if="modal === 'car'">
           <span class="modal-icon"><CarFront :size="26" /></span
           ><span class="eyebrow">{{
-            editing ? "YOUR GROWING GARAGE" : "REVIEW BEFORE YOU TRACK"
+            editing ? "YOUR GROWING GARAGE" : "CARS FOR YOU AND YOUR FRIENDS"
           }}</span>
           <h2>
             {{
               editing
-                ? "Your vehicle, your details."
-                : "Make sure it’s the right plate."
+                ? editing.record_type === "plate"
+                  ? "Add car details."
+                  : "Your car, your details."
+                : "Add a car."
             }}
           </h2>
           <p>
             {{
               editing
-                ? "Update this vehicle’s name, plate state and optional contact email."
-                : "Review the plate text, check its ticket history, then choose whether to track it."
+                ? editing.record_type === "plate"
+                  ? "Turn this data plate into a car with a name, contact email and notifications. Its ticket history stays with it."
+                  : "Update this car’s name, plate state and optional contact email."
+                : "Add a name, plate and optional email for ticket notifications. Check the plate’s ticket history before saving."
             }}
           </p>
           <img
@@ -1719,7 +1800,7 @@ onBeforeUnmount(() => {
           />
           <form @submit.prevent="saveCar">
             <label for="vehicle-name"
-              >Vehicle name
+              >Car or owner name
               <span>{{ editing ? "" : "(optional)" }}</span></label
             >
             <input
@@ -1739,7 +1820,8 @@ onBeforeUnmount(() => {
               maxlength="254"
               autocomplete="email"
             /><span class="field-hint"
-              >Optional contact address for this vehicle.</span
+              >Receives new-ticket alerts and monthly summaries when email is
+              enabled.</span
             >
             <label for="vehicle-plate">License plate</label
             ><input

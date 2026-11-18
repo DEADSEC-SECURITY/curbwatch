@@ -7,6 +7,7 @@ import {
   RefreshCw,
   ScanLine,
   CarFront,
+  Plus,
   ReceiptText,
   CircleHelp,
   LoaderCircle,
@@ -21,12 +22,15 @@ const props = defineProps({
   tickets: { type: Number, default: 0 },
   checking: Boolean,
   version: { type: Number, default: 0 },
+  shared: Boolean,
+  loadActivity: { type: Function, default: api },
 });
-defineEmits(["street", "navigate", "scan", "check"]);
+defineEmits(["street", "navigate", "scan", "check", "plate", "car"]);
 const nearby = useNearbyActivity({
-  load: api,
+  load: props.loadActivity,
   clock: localNow,
   isOnline: () => online.value,
+  clearOnError: props.shared,
 });
 const {
   data,
@@ -234,9 +238,9 @@ onMounted(nearby.start);
       <details class="nearby-evidence">
         <summary><CircleHelp :size="15" />What does this tell me?</summary>
         <p>
-          This is historical activity from your garage’s monitored vehicles, not
-          a probability of getting a ticket or a live patrol report. It covers
-          the whole street, not your exact block or side of the road.
+          This is historical activity from monitored plates, not a probability
+          of getting a ticket or a live patrol report. It covers the whole
+          street, not your exact block or side of the road.
         </p>
         <p v-if="summary">
           At this hour: {{ summary.distinct_days }} of
@@ -252,7 +256,7 @@ onMounted(nearby.start);
       </details>
     </section>
 
-    <div class="today-totals">
+    <div v-if="!shared" class="today-totals">
       <button @click="$emit('navigate', 'cars')">
         <CarFront :size="21" /><span
           ><strong>{{ vehicles }}</strong> vehicles tracked</span
@@ -264,9 +268,27 @@ onMounted(nearby.start);
         ><ArrowRight :size="17" />
       </button>
     </div>
-    <section class="today-quick-actions" aria-labelledby="quick-actions-title">
+    <section
+      v-if="!shared"
+      class="today-quick-actions"
+      aria-labelledby="quick-actions-title"
+    >
       <h2 id="quick-actions-title">Your garage</h2>
       <div>
+        <button
+          class="button primary"
+          :disabled="!online"
+          @click="$emit('plate')"
+        >
+          <Plus :size="19" />Quick add plate
+        </button>
+        <button
+          class="button secondary"
+          :disabled="!online"
+          @click="$emit('car')"
+        >
+          <CarFront :size="19" />Add car
+        </button>
         <button class="button secondary" @click="$emit('scan')">
           <ScanLine :size="19" />Scan a plate</button
         ><button

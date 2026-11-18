@@ -5,7 +5,7 @@ import io
 import json
 import re
 import sqlite3
-from typing import Annotated
+from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, field_validator, EmailStr
+from pydantic import BaseModel, Field, field_validator, model_validator, EmailStr, ConfigDict
 
 from . import config
 from .activity import activity, HistoryDays
@@ -48,7 +48,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="Parking Checker",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
     description="Local vehicle tracking, read-only Syracuse ticket checks, and historical street activity.",
 )
@@ -149,6 +149,13 @@ class CarCreate(BaseModel):
     confirm_no_tickets: bool = False
     email: EmailStr | None = None
     plate_state: str | None = Field(default=None, max_length=2)
+    record_type: Literal["vehicle", "plate"] = "vehicle"
+
+    @model_validator(mode="after")
+    def plate_has_no_contact(self):
+        if self.record_type == "plate" and self.email:
+            raise ValueError("Add car details before assigning a contact email")
+        return self
 
     @field_validator("plate_state", mode="before")
     @classmethod
@@ -179,6 +186,7 @@ class CarUpdate(BaseModel):
     active: bool | None = None
     email: EmailStr | None = None
     plate_state: str | None = Field(default=None, max_length=2)
+    record_type: Literal["vehicle", "plate"] | None = None
 
     @field_validator("plate_state", mode="before")
     @classmethod
@@ -204,6 +212,11 @@ class PlateLookup(BaseModel):
     @classmethod
     def normalize_plate(cls, value):
         return CarCreate.normalize_plate(value)
+
+
+class QuickPlateCreate(PlateLookup):
+    model_config = ConfigDict(extra="forbid")
+    plate_state: str = Field(default="NY", max_length=2)
 
 
 class CheckRequest(BaseModel):
@@ -255,7 +268,8 @@ def create_car(body: CarCreate):
             status = "ticket_match" if tickets else "user_confirmed_no_tickets"
             row = db.execute(
                 """INSERT INTO cars(name,plate,created_at,last_checked_at,last_success_at,
-                             verification_status,verified_at,email,plate_state) VALUES (?,?,?,?,?,?,?,?,?) RETURNING *""",
+                             verification_status,verified_at,email,plate_state,record_type)
+                             VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING *""",
                 (
                     body.name or body.plate,
                     body.plate,
@@ -266,6 +280,7 @@ def create_car(body: CarCreate):
                     lookup["checked_at"],
                     body.email,
                     body.plate_state,
+                    body.record_type,
                 ),
             ).fetchone()
             for ticket in tickets:
@@ -294,10 +309,25 @@ def lookup_plate(body: PlateLookup):
         lookup_lock.release()
 
 
+@app.post("/api/plates", status_code=201, dependencies=[Depends(require_user)])
+def quick_add_plate(body: QuickPlateCreate):
+    # A single action still uses the same validated, atomic ticket lookup as adding a car.
+    lookup = lookup_plate(body)
+    return create_car(
+        CarCreate(
+            plate=body.plate,
+            plate_state=body.plate_state,
+            record_type="plate",
+            lookup_id=lookup["id"],
+            confirm_no_tickets=True,
+        )
+    )
+
+
 @app.patch("/api/cars/{car_id}", dependencies=[Depends(require_user)])
 def update_car(car_id: int, body: CarUpdate):
     with connect() as db:
-        require_car(db, car_id)
+        car = require_car(db, car_id)
         updates = {
             key: value
             for key, value in body.model_dump(exclude_unset=True).items()
@@ -307,6 +337,9 @@ def update_car(car_id: int, body: CarUpdate):
             updates["name"] = updates["name"].strip()
             if not updates["name"]:
                 raise HTTPException(422, "Give this vehicle a name")
+        record_type = updates.get("record_type", car["record_type"])
+        if record_type == "plate" and updates.get("email", car["email"]):
+            raise HTTPException(422, "Add car details before assigning a contact email")
         if updates:
             db.execute(
                 f"UPDATE cars SET {','.join(f'{key}=?' for key in updates)} WHERE id=?",

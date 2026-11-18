@@ -1,6 +1,13 @@
 <script setup>
 import { runtime } from "./runtime";
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
 import {
   LockKeyhole,
   Clock3,
@@ -12,6 +19,8 @@ import {
 import HistoryPeriod from "./components/HistoryPeriod.vue";
 import StreetMap from "./components/StreetMap.vue";
 import TimelinePlayback from "./components/TimelinePlayback.vue";
+import TodayDashboard from "./components/TodayDashboard.vue";
+import PwaControls from "./components/PwaControls.vue";
 import { useTimelinePlayback } from "./timeline/playback";
 import { localNow, hourLabel } from "./api";
 import { usePhoneLayout, useDialogFocus } from "./dialog.js";
@@ -35,7 +44,8 @@ const summary = computed(() =>
   ),
 );
 const phone = usePhoneLayout(),
-  streetPanel = ref(null);
+  streetPanel = ref(null),
+  workspace = ref(null);
 const streetSheetOpen = computed(() => phone.value && Boolean(summary.value));
 useDialogFocus(streetSheetOpen, streetPanel, () => {
   selected.value = "";
@@ -61,16 +71,22 @@ watch([day, token, historyDays], () => {
   selected.value = "";
 });
 async function get(path) {
-  const response = await fetch(`/api/shared/${path}`, {
-    headers: { Authorization: `Bearer ${token.value}` },
+  const currentToken = token.value;
+  const response = await fetch(`/api/shared/${path.replace(/^\//, "")}`, {
+    headers: { Authorization: `Bearer ${currentToken}` },
     cache: "no-store",
     credentials: "omit",
     referrerPolicy: "no-referrer",
   });
-  if (response.status === 404)
-    throw new Error(
-      "This map link is unavailable. It may have expired or been revoked. Ask the owner for a new link.",
-    );
+  if (currentToken !== token.value) throw new Error("The map link changed.");
+  if (response.status === 404) {
+    request++;
+    loading.value = false;
+    error.value =
+      "This map link is unavailable. It may have expired or been revoked. Ask the owner for a new link.";
+    activity.value = roads.value = null;
+    throw new Error(error.value);
+  }
   if (!response.ok)
     throw new Error("The shared map could not be loaded. Please try again.");
   return response.json();
@@ -148,8 +164,19 @@ function refresh() {
   load();
 }
 function hashChanged() {
+  request++;
   token.value = location.hash.slice(1);
+  activity.value = roads.value = null;
+  error.value = "";
   selected.value = "";
+}
+async function viewNearbyStreet(key) {
+  historyDays.value = "90";
+  now();
+  await load();
+  selected.value = key;
+  await nextTick();
+  workspace.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function visible() {
   if (document.visibilityState === "visible") refresh();
@@ -180,6 +207,7 @@ onBeforeUnmount(() => {
       <span class="shared-readonly"
         ><LockKeyhole :size="14" />Shared map · Read only</span
       >
+      <PwaControls v-if="activity && !error" shared />
     </header>
     <div class="shared-intro">
       <div>
@@ -198,6 +226,14 @@ onBeforeUnmount(() => {
         >
       </button>
     </div>
+    <TodayDashboard
+      v-if="activity && !error"
+      :key="token"
+      class="shared-nearby"
+      shared
+      :load-activity="get"
+      @street="viewNearbyStreet"
+    />
     <HistoryPeriod v-model="historyDays" :period="activity?.period" />
     <div
       v-if="activity && !activity.period.ticket_count"
@@ -215,7 +251,12 @@ onBeforeUnmount(() => {
     <div v-else-if="!activity" class="shared-loading" role="status">
       Loading the shared map…
     </div>
-    <div v-else class="map-workspace shared-workspace" :aria-busy="loading">
+    <div
+      v-else
+      ref="workspace"
+      class="map-workspace shared-workspace"
+      :aria-busy="loading"
+    >
       <section class="map-panel">
         <StreetMap
           :activity="activity"
@@ -379,7 +420,7 @@ onBeforeUnmount(() => {
         <div class="street-panel-footer">
           <CircleHelp :size="17" />
           <p>
-            Based on monitored cars.<br /><strong
+            Based on monitored plates.<br /><strong
               >Limited data doesn’t mean no enforcement.</strong
             >
           </p>

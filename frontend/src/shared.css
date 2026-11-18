@@ -10,6 +10,20 @@
   gap: 16px;
   padding-bottom: 22px;
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.shared-header .shared-readonly {
+  margin-left: auto;
+}
+.shared-header .pwa-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.shared-nearby {
+  margin-bottom: 24px;
+  max-width: none;
 }
 .shared-brand {
   display: flex;

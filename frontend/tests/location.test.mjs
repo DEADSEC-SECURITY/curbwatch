@@ -338,6 +338,32 @@ test("failed geometry downloads can be retried, without posting coordinates", as
   assert.ok(calls.every((path) => !/lat|lng|43\.04|-76\.13/.test(path)));
 });
 
+test("shared activity clears displayed data when access fails and retries geometry", async (t) => {
+  let denied = false,
+    geometryLoads = 0;
+  const f = fixture(t, {
+    clearOnError: true,
+    load: async (path) => {
+      if (denied) throw new Error("This map link is unavailable.");
+      if (path === "/streets") {
+        geometryLoads++;
+        return roads;
+      }
+      return activity();
+    },
+  });
+  await f.nearby.refresh();
+  f.nearby.selectStreet("WAVERLY AVE");
+  assert.equal(f.nearby.summary.value.level, "moderate");
+  denied = true;
+  await f.nearby.refresh();
+  assert.equal(f.nearby.data.value, null);
+  assert.equal(f.nearby.summary.value, undefined);
+  denied = false;
+  await f.nearby.refresh();
+  assert.equal(geometryLoads, 2);
+});
+
 test("insecure contexts, missing geolocation and blocked storage still support manual streets", async (t) => {
   for (const options of [
     { secure: false },

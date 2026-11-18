@@ -25,7 +25,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="Curbwatch shared map",
-    version="0.2.0",
+    version="0.3.0",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -159,4 +159,9 @@ if dist.exists():
     def favicon():
         return FileResponse(dist / "favicon.svg")
 
+    @app.get("/share/sw.js", include_in_schema=False)
+    def shared_worker():
+        return FileResponse(dist / "share" / "sw.js", media_type="application/javascript")
+
+    app.mount("/icons", StaticFiles(directory=dist / "icons"), name="shared-icons")
     app.mount("/assets", StaticFiles(directory=dist / "assets"), name="shared-assets")
