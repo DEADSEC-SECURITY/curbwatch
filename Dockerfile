@@ -6,7 +6,7 @@ COPY frontend/ ./
 COPY backend/resources/plate-states.json /app/backend/resources/plate-states.json
 RUN npm run build
 
-FROM python:3.14-slim
+FROM python:3.15-slim
 ARG VERSION=0.3.0
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="Curbwatch" \
