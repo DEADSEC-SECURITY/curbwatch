@@ -38,7 +38,7 @@ export function applyUpdate() {
   registration?.waiting?.postMessage({ type: "SKIP_WAITING" });
 }
 
-export function registerPwa() {
+export function registerPwa({ workerUrl = "/sw.js", scope = "/" } = {}) {
   if (
     !("serviceWorker" in navigator) ||
     !window.isSecureContext ||
@@ -54,7 +54,7 @@ export function registerPwa() {
     }
   });
   navigator.serviceWorker
-    .register("/sw.js", { scope: "/" })
+    .register(workerUrl, { scope })
     .then((reg) => {
       registration = reg;
       updateReady.value = Boolean(reg.waiting);

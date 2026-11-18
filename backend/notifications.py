@@ -330,7 +330,8 @@ def delivery_status():
                                          FROM email_outbox ORDER BY created_at DESC,id DESC LIMIT 12""")
         ]
         missing = sum(
-            not recipient_email(row["email"]) for row in db.execute("SELECT email FROM cars")
+            not recipient_email(row["email"])
+            for row in db.execute("SELECT email FROM cars WHERE record_type='vehicle'")
         )
     return {
         "counts": counts,

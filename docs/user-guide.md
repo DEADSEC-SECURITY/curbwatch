@@ -2,7 +2,11 @@
 
 ## Garage and tickets
 
-Add vehicles manually or scan a photo/live camera view. Review the exact plate, optional state, name and email. Every new plate must pass a successful ticket-source lookup before saving; zero matches require confirming the text. A no-ticket result is not registration validation. The Syracuse adapter searches by plate text, not state, and duplicate protection uses that text.
+Use **Add car** for your own or a friend's car: enter a name, plate, optional state and contact email for notifications. You can also scan a photo/live camera view. Review the plate and ticket lookup before saving; zero matches require confirming the text.
+
+Use **Quick add plate** to collect data without owner details or emails. Enter the plate, change the state if needed (each new entry defaults to New York), then choose **Save & add more** or **Save & exit**. Adding more keeps the dialog open and focuses the empty plate field. A successful ticket-source lookup is still required; plates without tickets are saved for future monitoring. A failed lookup keeps your entry available for retry. The **Cars**, **Data plates** and **All** filters separate the two kinds of records. Use a data plate's edit button to add car details and a contact email later without losing its ticket history. Existing records remain cars.
+
+A no-ticket result is not registration validation. The Syracuse adapter searches by plate text, not state, and duplicate protection uses that text.
 
 Initial tickets save atomically with the car. The reviewed lookup expires after ten minutes by default. Changing the plate or state invalidates it. Failures are never treated as empty results. Pausing a vehicle preserves its history; manually checking a paused vehicle is still possible.
 
@@ -36,8 +40,12 @@ Admins add/invite users in Settings. There is no public signup or automatic SSO 
 
 Share map creates an expiring, revocable link to the map/timeline only. Plates, emails, tickets, balances and all management controls remain private. Full link secrets appear only at creation and cannot be retrieved later. Keep and distribute the copied link appropriately.
 
+Shared maps also show **Your street, right now** with the same optional location/manual street check as Today, using the current hour and last 90 days. Coordinates stay on the visitor's device. **View street** opens that street on the shared map. No car, plate-entry, notification or account controls appear for visitors. Revoking or expiring the link also removes access from an installed shared map.
+
 ## Camera, PWA and offline use
 
 OCR runs locally with bundled Tesseract workers/models. No photos or videos go to a cloud OCR service or app server. Only the reviewed text goes to the plate lookup. Video is not saved as a recording. Closing/hiding the scanner releases its camera tracks. Recognition can be wrong; check ambiguous characters and the plate/state yourself.
 
 Install the PWA from its install control/browser menu. A phone needs a trusted HTTPS address for camera access and installation. Shell/OCR assets may be cached, but private data requires a live session check on a fresh launch; API responses are never cached and writes are not queued offline. An authenticated open page may remain visible during an interruption. Signing out clears the private UI and tab drafts, not the database.
+
+Installing from a shared link creates a separate **Shared map** app that reopens the full link, including its secret fragment. Installing from the normal app still opens the normal owner app. Open the exact shared link before choosing Install app (Safari: Share → Add to Home Screen). Shared installation uses a separate app identity and a worker limited to `/share/`; it does not cache map data or the link secret. Internet is required to reopen a shared map. Browser installation support varies. If your browser cannot install the locally generated shared-map manifest, use Add to Home Screen to save the exact link as a shortcut instead.

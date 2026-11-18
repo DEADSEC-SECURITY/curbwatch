@@ -78,6 +78,8 @@ def init_db(seed=True):
         for column in ("verification_status", "verified_at", "email", "plate_state"):
             if column not in columns:
                 db.execute(f"ALTER TABLE cars ADD COLUMN {column} TEXT")
+        if "record_type" not in columns:
+            db.execute("ALTER TABLE cars ADD COLUMN record_type TEXT NOT NULL DEFAULT 'vehicle'")
         lookup_columns = {row["name"] for row in db.execute("PRAGMA table_info(plate_lookups)")}
         if "plate_state" not in lookup_columns:
             db.execute("ALTER TABLE plate_lookups ADD COLUMN plate_state TEXT")

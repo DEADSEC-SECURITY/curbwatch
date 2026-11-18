@@ -32,7 +32,7 @@ For custom settings, extract the included public template and edit `.env` before
 docker run --rm --entrypoint cat elgon2003/curbwatch:latest /app/.deploy/env.example > .env
 ```
 
-For example, set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.2.0` to pin a release, or configure external HTTPS origins. Do not overwrite an existing `.env` when updating. To update containers while retaining their volume:
+For example, set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.3.0` to pin a release, or configure external HTTPS origins. Do not overwrite an existing `.env` when updating. To update containers while retaining their volume:
 
 ```sh
 docker compose pull
@@ -70,14 +70,14 @@ Mount files required by any other role there too if using a secret broker URL or
 For a manual publish, authenticate with `docker login` and build from a reviewed checkout. Use a new version tag for each release; update `latest` to the same tested image:
 
 ```sh
-docker build --build-arg VERSION=0.2.0 --build-arg VCS_REF="$(git rev-parse HEAD)" -t elgon2003/curbwatch:0.2.0 .
-docker run --rm -e PARKING_FETCH_STREETS_ON_START=false elgon2003/curbwatch:0.2.0 init
-docker tag elgon2003/curbwatch:0.2.0 elgon2003/curbwatch:latest
-docker push elgon2003/curbwatch:0.2.0
+docker build --build-arg VERSION=0.3.0 --build-arg VCS_REF="$(git rev-parse HEAD)" -t elgon2003/curbwatch:0.3.0 .
+docker run --rm -e PARKING_FETCH_STREETS_ON_START=false elgon2003/curbwatch:0.3.0 init
+docker tag elgon2003/curbwatch:0.3.0 elgon2003/curbwatch:latest
+docker push elgon2003/curbwatch:0.3.0
 docker push elgon2003/curbwatch:latest
 ```
 
-The [Publish Docker image workflow](../.github/workflows/publish-image.yml) runs the existing CI checks before publishing. Add a Docker Hub personal access token for `elgon2003` with write access as the GitHub Actions repository secret `DOCKERHUB_TOKEN`. Never commit the token. Run the workflow manually with a tag, or publish a GitHub release: `v0.2.0` publishes `0.2.0`, and a stable release also updates `latest`. Prereleases do not update `latest`. The workflow builds Linux amd64 images, includes SBOM/provenance attestations, and pins its actions to reviewed revisions.
+The [Publish Docker image workflow](../.github/workflows/publish-image.yml) runs the existing CI checks before publishing. Add a Docker Hub personal access token for `elgon2003` with write access as the GitHub Actions repository secret `DOCKERHUB_TOKEN`. Never commit the token. Run the workflow manually with a tag, or publish a GitHub release: `v0.3.0` publishes `0.3.0`, and a stable release also updates `latest`. Prereleases do not update `latest`. The workflow builds Linux amd64 images, includes SBOM/provenance attestations, and pins its actions to reviewed revisions.
 
 ## Reverse proxy and HTTPS
 

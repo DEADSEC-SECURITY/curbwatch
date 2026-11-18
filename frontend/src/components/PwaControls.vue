@@ -9,6 +9,7 @@ import {
   updateReady,
   applyUpdate,
 } from "../pwa";
+defineProps({ shared: Boolean });
 const help = ref(false);
 const helpPanel = ref(null);
 useDialogFocus(help, helpPanel, () => {
@@ -45,8 +46,11 @@ async function install() {
         ><span class="eyebrow">YOUR OWN CURBWATCH APP</span>
         <h2>Keep it within reach.</h2>
         <p>
-          Install Curbwatch to open it in its own window, with a home-screen
-          icon.
+          {{
+            shared
+              ? "Install this shared map to reopen the same link from your home screen. The link’s expiry still applies."
+              : "Install Curbwatch to open it in its own window, with a home-screen icon."
+          }}
         </p>
         <div class="install-steps">
           <strong>On this computer</strong>

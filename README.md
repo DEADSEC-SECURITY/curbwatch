@@ -6,13 +6,13 @@ Self-hosted parking-ticket monitoring, a street activity map, and an installable
 
 ## What it does
 
-- Track plates with optional name, state and contact email; check new plates before saving.
+- Add cars with a name and contact email, or quick-add data plates with New York selected and save-and-add-more; check new plates before saving.
 - Collect tickets on a configurable schedule, keeping history and payment/status changes.
 - Explore exact-hour street activity using a week, month, three months, six months, year or all history. No age weighting. These are observations, not live patrol locations or calibrated probabilities.
 - Scan a photo or live camera view with on-device OCR. Photos/video are not uploaded.
 - Send an email for each new ticket and a monthly outstanding report with balances, ticket ages and a payment link.
 - Sign in locally or with Authentik/another OIDC provider. No public signup; admins invite users.
-- Share a restricted read-only map without exposing plates, emails, tickets or admin controls.
+- Share an installable read-only map with a current-street location check, without exposing plates, emails, tickets or admin controls. Installing a shared map reopens that link; the normal app keeps its own launch page.
 
 New installations start with an empty garage. No personal records or municipal road dataset are shipped in the repository.
 
@@ -63,7 +63,7 @@ To customize deployment settings, extract the environment template and edit `.en
 docker run --rm --entrypoint cat elgon2003/curbwatch:latest /app/.deploy/env.example > .env
 ```
 
-Update with `docker compose pull && docker compose up -d`. The named data volume persists across container updates. Set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.2.0` in `.env` to pin a version.
+Update with `docker compose pull && docker compose up -d`. The named data volume persists across container updates. Set `CURBWATCH_IMAGE=elgon2003/curbwatch:0.3.0` in `.env` to pin a version.
 
 To build from source instead, clone this repository, copy `.env.example` to `.env`, and run `docker compose up --build -d` with the repository's original `compose.yaml`. See [deployment and publishing](docs/deployment.md) for details.
 

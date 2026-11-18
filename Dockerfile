@@ -7,7 +7,7 @@ COPY backend/resources/plate-states.json /app/backend/resources/plate-states.jso
 RUN npm run build
 
 FROM python:3.14-slim
-ARG VERSION=0.2.0
+ARG VERSION=0.3.0
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="Curbwatch" \
     org.opencontainers.image.description="Self-hosted parking ticket monitoring and street activity maps" \

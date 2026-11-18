@@ -487,6 +487,7 @@
   }
   .filter-pill {
     font-size: 13px;
+    min-height: 44px;
   }
   .ticket-summary {
     display: grid;
