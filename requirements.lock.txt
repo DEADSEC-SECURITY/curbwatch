@@ -1,10 +1,10 @@
 amqp==5.4.2
-annotated-doc==0.0.6
+annotated-doc==0.0.7
 annotated-types==0.8.0
 anyio==4.16.0
 argon2-cffi==25.1.0
 argon2-cffi-bindings==26.2.0
-Authlib==1.9.8
+Authlib==1.9.10
 billiard==4.3.2
 celery==5.7.0
 certifi==2026.10.23
@@ -16,7 +16,7 @@ click-repl==0.4.1
 cryptography==50.0.2
 dnspython==2.9.2
 email-validator==2.4.0
-fastapi==0.163.1
+fastapi==0.165.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
@@ -28,8 +28,8 @@ packaging==26.3
 prompt_toolkit==3.0.53
 pwdlib==0.4.2
 pycparser==3.12
-pydantic==2.14.3
-pydantic_core==2.50.4
+pydantic==2.14.4
+pydantic_core==2.50.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 redis==8.1.0
